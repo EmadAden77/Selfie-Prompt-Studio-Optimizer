@@ -44,6 +44,18 @@ export function resolveContextualOptics(scene: BuildInput): ContextualOptics {
       en: light.en + ' Heavy side/rear tint reduces only the light passing through those panes; the clear windshield remains an independent daylight path, without artificial cabin brightening.' };
   }
 
+  const outsideNightLights = new Set([
+    'sodium_street', 'led_modern_street', 'single_distant_lamp',
+    'headlights_bounce', 'pure_moonlight', 'ambient_drive_thru',
+    'tunnel_tungsten',
+  ]);
+  if (inside && tintIsHeavy && outsideNightLights.has(light.id)) {
+    light = natural(light.id,
+      'الإضاءة الليلية الخارجية من المصدر الموجود فقط، تصل عبر الزجاج الأمامي الشفاف أو تخفت بشدة عند مرورها بالزجاج الجانبي والخلفي المظلل. تُقبل ظلال مقصورة عميقة وتعريض هاتف محدود دون أي إضاءة تعبئة مخفية.',
+      'Only the actual exterior night lighting reaches the cabin, primarily through a clear windshield or strongly attenuated through dark side and rear glass. Allow deep cabin shadows and limited phone exposure; never invent studio fill.');
+    notes.push('heavy_tint_night_transmission');
+  }
+
   if (inside && high) {
     angle = natural(angle.id,
       'سيلفي أمامي بزاوية مرتفعة قليلًا عن مستوى العين، ضمن الارتفاع الفعلي المتاح بين رأس الجالس وبطانة سقف السيارة، مع ذراع ومرفق طبيعيين؛ لا تُفرض زاوية 45 درجة إذا لم تسمح المساحة.',
