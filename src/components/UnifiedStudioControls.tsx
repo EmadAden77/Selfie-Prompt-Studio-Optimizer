@@ -36,6 +36,7 @@ import {
   MICRO_WEATHER,
 } from '../data/studioData';
 import { analyzeLocationLighting, TimeOfDay } from '../utils/lightingEngine';
+import { optionLockReason, OptionGroup } from '../utils/optionCompatibility';
 
 interface UnifiedStudioControlsProps {
   itemBg: string;
@@ -245,13 +246,27 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
   }, [locZoneFilter, locSearch]);
 
   const isOutside = selectedLocation.zone === 'outside';
+  const lockReason = (group: OptionGroup, id: string) => optionLockReason(group, id, {
+    zone: selectedLocation.zone,
+    time: timeOfDay,
+    lightingId: lightId,
+    poseId,
+    clothId,
+    selectedAirflowIds: airflowIds,
+    selectedErgonomicIds: tallErgonomicIds,
+  });
+  const lockProps = (group: OptionGroup, id: string) => {
+    const reason = lockReason(group, id);
+    return { disabled: Boolean(reason), title: reason ?? undefined };
+  };
+
 
   const cardClass = darkMode
     ? 'bg-zinc-900/90 border-zinc-800 backdrop-blur-md'
     : 'bg-white border-zinc-200/90 shadow-sm';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 [&_button:disabled]:opacity-35 [&_button:disabled]:cursor-not-allowed [&_button:disabled]:grayscale">
       {/* ============================================================== */}
       {/* 1. LOCATION & VEHICLE SECTION (All 40 Locations Searchable)    */}
       {/* ============================================================== */}
@@ -618,6 +633,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
               {LIGHTING_OPTIONS.map(opt => (
                 <button
                   key={opt.id}
+                  {...lockProps("lighting", opt.id)}
                   type="button"
                   onClick={() => {
                     setLightId(opt.id);
@@ -904,6 +920,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
               {POSES.map(p => (
                 <button
                   key={p.id}
+                  {...lockProps("poses", p.id)}
                   type="button"
                   onClick={() => setPoseId(p.id)}
                   className={`p-2 rounded-xl text-right text-xs border transition ${
@@ -1209,7 +1226,8 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
                     return (
                       <button
                         key={item.id}
-                        type="button"
+                        {...lockProps("cabins", item.id)}
+                  type="button"
                         onClick={() => toggle(item.id, cabinIds, setCabinIds)}
                         className={`px-2.5 py-1 rounded-lg text-[11px] transition border ${
                           on
@@ -1227,7 +1245,8 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
                     return (
                       <button
                         key={item.id}
-                        type="button"
+                        {...lockProps("cabinArtifacts", item.id)}
+                  type="button"
                         onClick={() => toggle(item.id, cabinArtifactIds, setCabinArtifactIds)}
                         className={`px-2.5 py-1 rounded-lg text-[11px] transition border ${
                           on
@@ -1245,7 +1264,8 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
                     return (
                       <button
                         key={item.id}
-                        type="button"
+                        {...lockProps("clutters", item.id)}
+                  type="button"
                         onClick={() => toggle(item.id, clutterIds, setClutterIds)}
                         className={`px-2.5 py-1 rounded-lg text-[11px] transition border ${
                           on
