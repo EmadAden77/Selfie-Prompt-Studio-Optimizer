@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GeminiScenario, GeminiOptimized } from '../types/studio';
+import { geminiApiUrl } from '../utils/geminiApi';
 
 interface GeminiAssistantPanelProps {
   currentPromptEn: string;
@@ -39,15 +40,18 @@ export const GeminiAssistantPanel: React.FC<GeminiAssistantPanelProps> = ({
     const vibeToUse = customVibe !== undefined ? customVibe : vibeInput;
 
     try {
-      const res = await fetch('/api/gemini/generate-scenario', {
+      const res = await fetch(geminiApiUrl('/api/gemini/generate-scenario'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userVibe: vibeToUse }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'تعذر توليد السيناريو عبر Gemini');
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        const message = res.status === 404
+          ? 'خدمة Gemini غير متاحة في النشر الثابت. شغّل server.ts أو اربط خادم API خارجي.'
+          : data?.error || 'تعذر توليد السيناريو عبر Gemini';
+        throw new Error(message);
       }
 
       setGeneratedScenario(data.scenario);
@@ -64,7 +68,7 @@ export const GeminiAssistantPanel: React.FC<GeminiAssistantPanelProps> = ({
     setOptimizedResult(null);
 
     try {
-      const res = await fetch('/api/gemini/optimize-prompt', {
+      const res = await fetch(geminiApiUrl('/api/gemini/optimize-prompt'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,9 +77,12 @@ export const GeminiAssistantPanel: React.FC<GeminiAssistantPanelProps> = ({
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'تعذر تحسين البرومبت عبر Gemini');
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        const message = res.status === 404
+          ? 'خدمة Gemini غير متاحة في النشر الثابت. شغّل server.ts أو اربط خادم API خارجي.'
+          : data?.error || 'تعذر تحسين البرومبت عبر Gemini';
+        throw new Error(message);
       }
 
       setOptimizedResult(data.optimized);
