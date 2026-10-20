@@ -128,7 +128,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
       sanitizedCabins = [];
       sanitizedDashUis = [];
       sanitizedCabinArtifacts = [];
-      sanitizedClutters = input.clutters.filter(c => c.id === 'door_pocket_keys');
+      sanitizedClutters = [];
     }
 
     // AC Airflow outside check
@@ -137,10 +137,10 @@ export function validateAndSanitizePhysics(input: BuildInput): {
       warnings.push({
         id: 'exterior_ac_breeze',
         level: 'auto-correction',
-        titleAr: 'تحويل تكييف الكابينة إلى نسيم خارجي طبيعي',
-        titleEn: 'Converted Interior AC Breeze to Natural Outdoor Airflow',
-        descAr: 'تكييف السيارة لا يؤثر على الشخص خارجها؛ تم تحويله إلى نسيم هواء خارجي طبيعي.',
-        descEn: 'Cabin AC vents cannot reach exterior subject; dynamically converted to realistic outdoor atmospheric breeze.',
+        titleAr: 'استبعاد هواء المكيف داخل المشهد الخارجي',
+        titleEn: 'Excluded cabin AC airflow outside',
+        descAr: 'تكييف السيارة لا يؤثر على الشخص خارجها؛ لم يتم افتراض وجود نسيم خارجي.',
+        descEn: 'Cabin AC vents cannot reach an exterior subject; no outdoor breeze is invented.',
         field: 'airflows',
       });
     }
