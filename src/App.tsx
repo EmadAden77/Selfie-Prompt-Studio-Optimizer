@@ -297,6 +297,28 @@ export default function App() {
     [sanitizedInput]
   );
 
+  // Invalidate custom text when the scene changes. The previous implementation
+  // kept displaying and copying stale text after changing locations or outfits.
+  const sceneFingerprint = JSON.stringify({
+    locId, carModelId, carColorId, clothId, accessoryId, poseId,
+    anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
+    beardId, hairId, heightCueId, storylineId, tintId,
+    opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds,
+    dashUiIds, subsurfaceIds, fabricIds, thermalIds, clutterIds,
+    airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds,
+    inAppArtifactIds, microWeatherIds, timeOfDay, autoLighting,
+  });
+  const lastSceneFingerprint = useRef(sceneFingerprint);
+  useEffect(() => {
+    if (lastSceneFingerprint.current !== sceneFingerprint) {
+      lastSceneFingerprint.current = sceneFingerprint;
+      setIsCustomEdited(false);
+      setCustomPromptAr('');
+      setCustomPromptEn('');
+      setGeminiResult('');
+    }
+  }, [sceneFingerprint]);
+
   const promptAr = isCustomEdited && customPromptAr ? customPromptAr : computedPrompt.ar;
   const promptEn = isCustomEdited && customPromptEn ? customPromptEn : computedPrompt.en;
 
