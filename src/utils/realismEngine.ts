@@ -496,9 +496,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
 
   // Final cross-field resolution runs after zone-specific rules. Saved presets and
   // restored sessions pass through the same gate as visible UI selections.
-  const daylightIds = new Set(['harsh_noon','noon_sun','soft_morning','afternoon_diffuse','overcast_haze','golden_hour']);
   const warmWeatherIds = new Set(['harsh_noon','noon_sun','golden_hour','afternoon_diffuse']);
-  const isDaylight = daylightIds.has(sanitizedLight.id);
   const isDirectSun = ['harsh_noon','noon_sun','golden_hour'].includes(sanitizedLight.id);
   const closeFace = input.frame.id === 'close_face';
   const hasThobe = input.cloth.id.includes('thobe');
