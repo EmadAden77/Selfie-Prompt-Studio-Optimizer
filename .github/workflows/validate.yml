@@ -19,5 +19,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: TypeScript validation
         run: npm run lint
+      - name: Scene coherence regression tests
+        run: npx tsx --test tests/*.test.ts
       - name: Production build
         run: npm run build

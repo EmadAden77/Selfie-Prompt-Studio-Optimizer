@@ -88,6 +88,10 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   let sanitizedPose = { ...input.pose };
   let sanitizedSubsurfaces = [...input.subsurfaces];
   let sanitizedScreenCasts = [...input.screenCasts];
+  let sanitizedLight = { ...input.light };
+  let sanitizedHeightCue = { ...input.heightCue };
+  let sanitizedThermals = [...input.thermals];
+  let sanitizedMicroWeathers = [...input.microWeathers];
 
   if (isOutside) {
     activeRules.push('عزل تفاصيل المقصورة الداخلية تلقائياً (اللقطة خارج السيارة)');
@@ -164,6 +168,22 @@ export function validateAndSanitizePhysics(input: BuildInput): {
         t => t.id !== 'forearm_span_wheel' && t.id !== 'roof_handle_grip'
       );
     }
+  }
+
+  // Remove cabin-only subject cues in an exterior image. Do not invent a
+  // replacement source or make assumptions about the selected weather.
+  if (isOutside) {
+    sanitizedHeightCue = {
+      id: 'exterior_stature',
+      ar: 'القامة الطويلة بتناسق طبيعي دون مسند رأس أو سقف سيارة',
+      en: 'natural tall stature without cabin headrest or roof-line cues',
+    };
+    sanitizedThermals = input.thermals.filter(item =>
+      !['window_ac_fog', 'ac_window_fog', 'cabin_window_fog'].includes(item.id)
+    );
+    sanitizedMicroWeathers = input.microWeathers.filter(item =>
+      !['cabin_condensation', 'interior_window_fog'].includes(item.id)
+    );
   }
 
   // 2. Interior Selfie Verification
@@ -261,6 +281,42 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     });
   }
 
+  // Unavailable lamps must not be silently treated as actual physical sources.
+  if (isOutside && ['warm_car_cabin_dome', 'dash_screens_glow', 'night_cabin_glow'].includes(lightId)) {
+    sanitizedLight = {
+      id: 'exterior_light_unresolved',
+      ar: 'إنارة الموقع الخارجية المتاحة فقط، دون افتراض مصدر غير مرئي',
+      en: 'available outdoor practical illumination only; no invented light source',
+    };
+    deduction += 15;
+    warnings.push({
+      id: 'outdoor_cabin_light_rejected',
+      level: 'auto-correction',
+      titleAr: 'استبعاد إنارة المقصورة من إضاءة الشخص الخارجي',
+      titleEn: 'Exterior cabin lighting rejected',
+      descAr: 'لا يمكن افتراض إضاءة الوجه خارج السيارة بواسطة شاشات أو لمبة المقصورة.',
+      descEn: 'Cabin screens and dome lamps cannot be assumed to illuminate an outdoor face.',
+      field: 'light',
+    });
+  }
+
+  if (input.loc.id === 10 && ['harsh_noon', 'noon_sun'].includes(lightId)) {
+    sanitizedLight = {
+      id: 'basement_existing_lights',
+      ar: 'إنارة القبو الموجودة فقط دون شمس مباشرة',
+      en: 'existing basement practical lights only; no direct sunlight',
+    };
+    warnings.push({
+      id: 'basement_light_corrected',
+      level: 'auto-correction',
+      titleAr: 'استبعاد الشمس المباشرة داخل القبو',
+      titleEn: 'Direct sunlight removed inside basement',
+      descAr: 'تم حذف الشمس المباشرة من وصف القبو المغلق.',
+      descEn: 'Direct noon sunlight is not valid in an enclosed basement.',
+      field: 'light',
+    });
+  }
+
   // 5. Calculate Realism Coherence Score
   const score = Math.max(65, 100 - deduction);
   const isCoherent = score >= 80;
@@ -323,6 +379,10 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     pose: sanitizedPose,
     subsurfaces: sanitizedSubsurfaces,
     screenCasts: sanitizedScreenCasts,
+    light: sanitizedLight,
+    heightCue: sanitizedHeightCue,
+    thermals: sanitizedThermals,
+    microWeathers: sanitizedMicroWeathers,
   };
 
   return { report, sanitized };
