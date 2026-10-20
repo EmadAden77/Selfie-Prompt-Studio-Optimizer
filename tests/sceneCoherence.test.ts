@@ -93,3 +93,12 @@ test('artificial bokeh and unverified face details are suppressed', () => {
   assert.deepEqual(sanitized.skinNuances, []);
   assert.deepEqual(sanitized.opticals.map(x => x.id), ['realistic_noise']);
 });
+
+test('exterior scene never leaks cabin clutter even if selected', () => {
+  const scene = fixture('outside', 'sodium_street');
+  scene.clutters = [option('door_pocket_keys'), option('rearview_parking_tag')];
+  scene.airflows = [option('ac_gentle_breeze')];
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  assert.deepEqual(sanitized.clutters, []);
+  assert.deepEqual(sanitized.airflows, []);
+});
