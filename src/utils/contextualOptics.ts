@@ -15,6 +15,11 @@ export interface ContextualOptics {
 }
 
 const natural = (id: string, ar: string, en: string): Opt => ({ id, ar, en });
+const appendLight = (source: Opt, arAddition: string, enAddition: string): Opt => ({
+  ...source,
+  ar: [source.ar, arAddition].filter(Boolean).join(' ').trim(),
+  en: [source.en, enAddition].filter(Boolean).join(' ').trim(),
+});
 const solar = new Set(['harsh_noon', 'noon_sun', 'soft_morning', 'afternoon_diffuse', 'golden_hour', 'overcast_haze']);
 const directMidday = new Set(['harsh_noon', 'noon_sun']);
 
@@ -27,21 +32,23 @@ export function resolveContextualOptics(scene: BuildInput): ContextualOptics {
   let { light, angle, pose, hair, accessory } = scene;
 
   if (inside && directMidday.has(light.id)) {
-    light = natural(light.id,
-      'ضوء ظهيرة قوي يدخل أساساً من الزجاج الأمامي الشفاف أو الفتحات الزجاجية المعرضة للشمس. سقف السيارة يحجب الأشعة العمودية المباشرة؛ الظلال الداخلية تتبع اتجاه دخول الضوء الحقيقي، ولا تُفرض ظلال شمس عمودية على الوجه.',
-      'Bright midday daylight entering primarily through the clear windshield and any genuinely sun-facing glass. The opaque vehicle roof blocks direct overhead rays; facial highlights and cabin shadows follow the actual window direction, never compulsory vertical outdoor sun shadows.');
+    light = {
+      ...light,
+      ar: 'ضوء ظهيرة قاسٍ عالي التباين يدخل فقط من الزجاج الأمامي أو الفتحات المعرضة فعلياً، مع ظلال اتجاهية تحت الأنف والحاجب والذقن؛ سقف السيارة المعتم يحجب الأشعة المباشرة من الأعلى وأي مسار شمسي عمودي خارجي.',
+      en: 'harsh high-contrast midday daylight entering only through the genuinely exposed windshield or other glazing, with directional shadows under the nose, brow and chin; the opaque vehicle roof blocks direct overhead rays and any vertical outdoor sun path.',
+    };
     notes.push('roof_shades_overhead_sun');
   } else if (inside && solar.has(light.id)) {
-    light = natural(light.id,
-      'ضوء النهار المتاح يدخل المقصورة من الزجاج الأمامي والفتحات المعرضة لاتجاه السماء والشمس؛ يحجب السقف الضوء العمودي وتخفت الإضاءة عبر النوافذ المظللة فقط.',
-      'Available daylight enters through the windshield and physically exposed windows; the opaque roof blocks overhead sun, and tinted side and rear glazing attenuate only light crossing those panes.');
+    light = appendLight(light,
+      'داخل المقصورة يدخل ضوء النهار من الزجاج أو الفتحات المعرضة فعلياً فقط؛ يحجب السقف الضوء العمودي، وتبقى خصائص هذا المصدر من حيث اللون والنعومة والاتجاه محفوظة.',
+      'Inside the cabin, daylight enters only through genuinely exposed glazing or openings, including a clear windshield only when it is the actual path; the roof blocks overhead sun while preserving this selected source\'s color, softness and direction.');
     notes.push('cabin_daylight_window_path');
   }
   if (inside && tintIsHeavy && solar.has(light.id)) {
-    // Complement, rather than override, the corrected daylight source.
-    light = { ...light,
-      ar: light.ar + ' التظليل الشديد لا يخفض الضوء القادم من الزجاج الأمامي الشفاف؛ لا سطوع داخلي مصطنع.',
-      en: light.en + ' Heavy side/rear tint reduces only the light passing through those panes; the clear windshield remains an independent daylight path, without artificial cabin brightening.' };
+    // Complement, rather than override, the selected daylight character.
+    light = appendLight(light,
+      'التظليل الشديد يخفف الضوء الذي يعبر الزجاج الجانبي والخلفي فقط؛ لا يضيف سطوعاً داخلياً مصطنعاً ولا يلغي لون واتجاه الإضاءة المختارة.',
+      'Heavy tint attenuates only light crossing side and rear glazing; it adds no artificial cabin brightening and does not erase the selected light\'s color or direction.');
   }
 
   const outsideNightLights = new Set([
@@ -50,9 +57,10 @@ export function resolveContextualOptics(scene: BuildInput): ContextualOptics {
     'tunnel_tungsten',
   ]);
   if (inside && tintIsHeavy && outsideNightLights.has(light.id)) {
-    light = natural(light.id,
-      'الإضاءة الليلية الخارجية من المصدر الموجود فقط، تصل عبر الزجاج الأمامي الشفاف أو تخفت بشدة عند مرورها بالزجاج الجانبي والخلفي المظلل. تُقبل ظلال مقصورة عميقة وتعريض هاتف محدود دون أي إضاءة تعبئة مخفية.',
-      'Only the actual exterior night lighting reaches the cabin, primarily through a clear windshield or strongly attenuated through dark side and rear glass. Allow deep cabin shadows and limited phone exposure; never invent studio fill.');
+    // Preserve the selected night source while constraining its transmission path.
+    light = appendLight(light,
+      'مصدر الإضاءة الليلية المختار يبقى كما هو، لكن وصوله للمقصورة يمر عبر الزجاج المتاح؛ يضعف بشدة عبر الزجاج الجانبي والخلفي المظلل، مع ظلال عميقة وتعريض هاتف محدود دون إضاءة تعبئة مخفية.',
+      'The selected night source remains unchanged, but its cabin transmission follows the available glazing, including a clear windshield only when it is the actual path; it is strongly attenuated through dark side and rear glass, with deep cabin shadows and limited phone exposure, never hidden studio fill.');
     notes.push('heavy_tint_night_transmission');
   }
 

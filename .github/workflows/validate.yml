@@ -20,6 +20,6 @@ jobs:
       - name: TypeScript validation
         run: npm run lint
       - name: Scene coherence regression tests
-        run: npx tsx --test tests/*.test.ts
+        run: npm test
       - name: Production build
         run: npm run build

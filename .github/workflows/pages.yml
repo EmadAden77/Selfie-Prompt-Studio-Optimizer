@@ -24,9 +24,12 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: npm run lint
+      # Configure Settings > Secrets and variables > Actions > Variables:
+      # VITE_GEMINI_API_BASE_URL=https://your-api-host.example.com
       - run: npm run build
         env:
           GITHUB_PAGES: 'true'
+          VITE_GEMINI_API_BASE_URL: ${{ vars.VITE_GEMINI_API_BASE_URL }}
       - uses: actions/configure-pages@v5
         with:
           enablement: true

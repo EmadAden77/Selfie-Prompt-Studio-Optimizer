@@ -297,12 +297,13 @@ test('real mosque-parking cabin selfie has windshield daylight, roof-clearance a
   const { report, sanitized } = validateAndSanitizePhysics(scene);
   const text = buildPrompt(sanitized).en;
   assert.match(text, /opaque vehicle roof blocks direct overhead rays/);
-  assert.match(text, /clear windshield/);
+  assert.match(text, /windshield remains clear/);
   assert.match(text, /real clearance between the seated head and roof liner/);
   assert.match(text, /possibly outside the crop/);
   assert.match(text, /5% visible light transmission/);
   assert.match(text, /Parking location context, not a mandatory visible background/);
   assert.match(text, /Toyota Land Cruiser LC300/);
+  assert.match(text, /harsh high-contrast midday daylight entering only through/);
   assert.doesNotMatch(text, /harsh overhead direct noon sun casting sharp vertical shadows/);
   assert.doesNotMatch(text, /high 45-degree selfie angle from above/);
   assert.doesNotMatch(text, /one large hand resting atop steering wheel/);
@@ -380,7 +381,9 @@ test('roof and tinted window invariants over 60 locations x 3 frames x 4 lightin
         assert.ok(prompt.includes('Height 193cm'));
         assert.doesNotMatch(prompt, /(?:195|194)cm frame/);
         if (loc.zone === 'inside' && id === 'harsh_noon' && loc.id !== 10) {
+          assert.match(prompt, /harsh high-contrast midday daylight entering only through/);
           assert.doesNotMatch(prompt, /harsh overhead direct noon sun casting sharp vertical shadows/);
+          assert.match(prompt, /opaque vehicle roof blocks direct overhead rays and any vertical outdoor sun path/);
         }
         if (loc.zone === 'outside') assert.doesNotMatch(prompt, /window tint affects cabin face illumination/i);
       }
@@ -407,3 +410,65 @@ test('five-percent window tint reduces nighttime exterior light but not front-fa
   const output = validateAndSanitizePhysics(lighter).sanitized;
   assert.doesNotMatch(output.light.en, /strongly attenuated through dark side/);
 });
+
+test('every visible context control reaches the final English prompt', async () => {
+  const { buildPrompt } = await import('../src/data/studioData');
+  const scene = fixture('inside', 'sodium_street');
+  scene.timeOfDay = 'night';
+  scene.heightCue = option('height-cue-selected');
+  scene.storyline = option('storyline-selected');
+  scene.skinNuances = [option('skin-detail-selected')];
+  scene.subsurfaces = [option('subsurface-selected')];
+  scene.thermals = [option('thermal-selected')];
+  scene.airflows = [option('airflow-selected')];
+  scene.screenCasts = [option('screen-cast-selected')];
+  scene.tallErgonomics = [option('ergonomic-selected')];
+
+  const prompt = buildPrompt(scene).en;
+
+  for (const selected of [
+    'height-cue-selected',
+    'storyline-selected',
+    'skin-detail-selected',
+    'subsurface-selected',
+    'thermal-selected',
+    'airflow-selected',
+    'screen-cast-selected',
+    'ergonomic-selected',
+    'Selected capture time: night.'
+  ]) {
+    assert.ok(prompt.includes(selected), selected);
+  }
+});
+
+test('contextual optics preserves the selected daylight character while adding cabin geometry', async () => {
+  const { LIGHTING_OPTIONS } = await import('../src/data/studioData');
+  const { resolveContextualOptics } = await import('../src/utils/contextualOptics');
+  const scene = fixture('inside', 'soft_morning');
+  scene.loc = { id: 2, zone: 'inside', ar: 'Location', en: 'Location' };
+  scene.light = LIGHTING_OPTIONS.find(x => x.id === 'soft_morning')!;
+  scene.tint = option('tint_extra_dark_05');
+
+  const resolved = resolveContextualOptics(scene);
+
+  assert.match(resolved.light.en, /crisp early morning soft natural daylight/);
+  assert.match(resolved.light.en, /preserving this selected source's color, softness and direction/);
+});
+
+test('storylines are reconciled with exterior and explicit time context', async () => {
+  const outside = fixture('outside', 'sodium_street');
+  outside.storyline = option('family_waiting_idle');
+  const outsideResult = validateAndSanitizePhysics(outside);
+  assert.match(outsideResult.sanitized.storyline.en, /beside a safely parked car/);
+  assert.doesNotMatch(outsideResult.sanitized.storyline.en, /idling car|driver seat/i);
+  assert.ok(outsideResult.report.warnings.some(x => x.id === 'storyline_context_reconciled'));
+
+  const daytime = fixture('inside', 'soft_morning');
+  daytime.timeOfDay = 'day';
+  daytime.storyline = option('late_night_cruising');
+  const daytimeResult = validateAndSanitizePhysics(daytime);
+  assert.match(daytimeResult.sanitized.storyline.en, /selected capture time/);
+  assert.doesNotMatch(daytimeResult.sanitized.storyline.en, /late night/i);
+  assert.ok(daytimeResult.report.warnings.some(x => x.id === 'storyline_context_reconciled'));
+});
+

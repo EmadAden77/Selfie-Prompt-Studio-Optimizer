@@ -44,6 +44,7 @@ import { QuickFlashGenerator } from './components/QuickFlashGenerator';
 import { validateAndSanitizePhysics, PhysicalRealismReport } from './utils/realismEngine';
 import { analyzeLocationLighting, TimeOfDay } from './utils/lightingEngine';
 import { copyToClipboard } from './utils/clipboard';
+import { geminiApiUrl } from './utils/geminiApi';
 
 const STORAGE_KEY = 'selfie-prompt-studio-v11.0';
 
@@ -176,6 +177,7 @@ export default function App() {
   // Gemini 3 Flash States
   const [isGeminiLoading, setIsGeminiLoading] = useState(false);
   const [geminiResult, setGeminiResult] = useState<string | null>(null);
+  const [geminiError, setGeminiError] = useState<string | null>(null);
   const [geminiType, setGeminiType] = useState<'optimize' | 'scenario' | null>(null);
 
   // Snapshot & Automatic Physical Realism Engine States
@@ -316,6 +318,7 @@ export default function App() {
       setCustomPromptAr('');
       setCustomPromptEn('');
       setGeminiResult('');
+      setGeminiError(null);
     }
   }, [sceneFingerprint]);
 
@@ -401,9 +404,10 @@ export default function App() {
     setIsGeminiLoading(true);
     setGeminiType(action);
     setGeminiResult(null);
+    setGeminiError(null);
 
     try {
-      const response = await fetch('/api/gemini/call-flash', {
+      const response = await fetch(geminiApiUrl('/api/gemini/call-flash'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -413,15 +417,19 @@ export default function App() {
         }),
       });
 
-      const data = await response.json();
-      if (data && data.success && data.text) {
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.success && data.text) {
         setGeminiResult(data.text);
         showToast(action === 'optimize' ? '✓ تم فحص وتحسين البرومبت عبر Gemini 3 Flash' : '✓ تم توليد سيناريو عفوي جديد عبر Gemini 3 Flash');
       } else {
-        setGeminiResult(data.error || 'عذراً، لم نتمكن من الحصول على استجابة فورية. يرجى إعادة المحاولة.');
+        setGeminiError(
+          response.status === 404
+            ? 'خدمة Gemini غير متاحة في النشر الثابت. شغّل server.ts أو اربط خادم API خارجي.'
+            : data?.error || 'عذراً، لم نتمكن من الحصول على استجابة فورية. يرجى إعادة المحاولة.'
+        );
       }
     } catch {
-      setGeminiResult('حدث خطأ أثناء الاتصال بنموذج Gemini. تأكد من اتصال الخادم والإنترنت.');
+      setGeminiError('حدث خطأ أثناء الاتصال بنموذج Gemini. تأكد من اتصال الخادم والإنترنت.');
     } finally {
       setIsGeminiLoading(false);
     }
@@ -716,6 +724,13 @@ export default function App() {
                   </button>
 
                   </div>
+
+                {/* حالة خطأ Gemini */}
+                {geminiError && (
+                  <div className="mt-3 p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs">
+                    ⚠️ {geminiError}
+                  </div>
+                )}
 
                 {/* صندوق نتائج Gemini */}
                 {geminiResult && (

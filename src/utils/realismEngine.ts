@@ -4,6 +4,71 @@ import { analyzeLocationLighting } from './lightingEngine';
 import { LIGHTING_OPTIONS } from '../data/studioData';
 import { BuildInput, Opt, Loc, SUBJECT_HEIGHT_CM } from '../types/studio';
 
+type SceneTime = NonNullable<BuildInput['timeOfDay']>;
+type SceneZone = BuildInput['loc']['zone'];
+
+interface StorylineRepair {
+  storyline: Opt;
+  reasonAr?: string;
+  reasonEn?: string;
+}
+
+function reconcileStoryline(storyline: Opt, zone: SceneZone, time: SceneTime): StorylineRepair {
+  if (storyline.id === 'family_waiting_idle' && zone === 'outside') {
+    return {
+      storyline: {
+        ...storyline,
+        ar: 'انتظار هادئ بجانب سيارة متوقفة بأمان بعد مشوار عائلي، دون أفعال أو تفاصيل خاصة بالمقصورة',
+        en: 'waiting calmly beside a safely parked car after a family errand, with no cabin-only actions or dashboard details',
+      },
+      reasonAr: 'تمت مواءمة قصة الانتظار العائلي مع الوقوف خارج السيارة وإزالة أفعال المقصورة.',
+      reasonEn: 'Family-waiting context was adapted to an exterior stance and cabin-only actions were removed.',
+    };
+  }
+
+  if (storyline.id === 'late_night_cruising' && zone === 'outside') {
+    return {
+      storyline: {
+        ...storyline,
+        ar: time === 'night'
+          ? 'واقف بجانب سيارة متوقفة بأمان بعد مسكة خط ليلية، دون إظهار الطبلون أو الكونسول خارج الكادر'
+          : 'واقف بجانب سيارة متوقفة بأمان بعد مشوار في وقت الالتقاط المختار، دون إظهار الطبلون أو الكونسول خارج الكادر',
+        en: time === 'night'
+          ? 'standing beside a safely parked car after a late-night drive; dashboard and console remain out of frame'
+          : 'standing beside a safely parked car after a drive during the selected capture time; dashboard and console remain out of frame',
+      },
+      reasonAr: 'تمت مواءمة قصة المسكة مع الوقوف خارج السيارة ومنع تفاصيل الطبلون غير المرئية.',
+      reasonEn: 'Late-cruising context was adapted to an exterior stance and hidden dashboard details were removed.',
+    };
+  }
+
+  if (storyline.id === 'late_night_cruising' && (time === 'day' || time === 'sunset')) {
+    return {
+      storyline: {
+        ...storyline,
+        ar: 'مشوار هادئ بالسيارة خلال وقت الالتقاط المختار، مع كوب سفر على الكونسول فقط إذا ظهر داخل الكادر',
+        en: 'a calm drive during the selected capture time, with a travel cup on the console only if the interior frame can physically show it',
+      },
+      reasonAr: 'تمت مواءمة قصة المسكة الليلية مع وقت الالتقاط المختار دون فرض عتمة أو إضاءة ليلية.',
+      reasonEn: 'Late-night cruising was adapted to the selected capture time without forcing darkness or night lighting.',
+    };
+  }
+
+  if (storyline.id === 'friday_after_prayer' && time === 'night') {
+    return {
+      storyline: {
+        ...storyline,
+        ar: 'توقف هادئ بعد الصلاة في المساء، دون افتراض شمس الظهيرة أو ضوء نهاري',
+        en: 'a quiet post-prayer evening stop without assuming midday sun or daylight',
+      },
+      reasonAr: 'تمت إزالة افتراض وقت الظهيرة من قصة ما بعد الصلاة لأن وقت الالتقاط ليلي.',
+      reasonEn: 'Midday assumptions were removed from the post-prayer story because the selected capture time is night.',
+    };
+  }
+
+  return { storyline };
+}
+
 
 export interface PhysicalWarning {
   id: string;
@@ -622,6 +687,18 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   // Scene intelligence final pass: a single compatibility policy controls both
   // rendered options and persisted/loaded states before prompt assembly.
   const requestedTime = input.timeOfDay ?? 'auto';
+  const storylineRepair = reconcileStoryline(input.storyline, input.loc.zone, requestedTime);
+  if (storylineRepair.reasonAr && storylineRepair.reasonEn) {
+    warnings.push({
+      id: 'storyline_context_reconciled',
+      level: 'auto-correction',
+      titleAr: 'مواءمة سياق القصة مع المكان والوقت',
+      titleEn: 'Story context reconciled with scene',
+      descAr: storylineRepair.reasonAr,
+      descEn: storylineRepair.reasonEn,
+      field: 'storyline',
+    });
+  }
   const lightingReason = optionLockReason('lighting', sanitizedLight.id, {
     zone: input.loc.zone, time: requestedTime, lightingId: sanitizedLight.id,
     poseId: sanitizedPose.id, frameId: input.frame.id, clothId: input.cloth.id,
@@ -800,6 +877,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     skinNuances: sanitizedSkinNuances,
     fabrics: sanitizedFabrics,
     heightCue: isInside ? sanitizedHeightCueForClothing : sanitizedHeightCue,
+    storyline: storylineRepair.storyline,
   };
 
   return { report, sanitized };
