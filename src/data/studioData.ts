@@ -373,6 +373,7 @@ export const CAR_COLORS: Opt[] = [
 ];
 
 export const ACCESSORIES: Opt[] = [
+  { id: "none", ar: "بدون إكسسوارات", en: "" },
   { id: "sunglasses_collar", ar: "نظارة شمسية معلقة على ياقة الثوب أو التيشيرت", en: "sunglasses hanging naturally from a visible shirt neckline or thobe collar" },
   { id: "specialty_cup", ar: "كوب ورقي لمقهى مختص باليد", en: "paper takeaway cup from a specialty coffee shop in hand" },
   { id: "car_key", ar: "مفتاح السيارة معلق بيده أو على الطبلون", en: "car key fob held casually in hand or resting on console" },
