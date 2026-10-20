@@ -297,7 +297,7 @@ test('real mosque-parking cabin selfie has windshield daylight, roof-clearance a
   const { report, sanitized } = validateAndSanitizePhysics(scene);
   const text = buildPrompt(sanitized).en;
   assert.match(text, /opaque vehicle roof blocks direct overhead rays/);
-  assert.match(text, /clear windshield/);
+  assert.match(text, /windshield remains clear/);
   assert.match(text, /real clearance between the seated head and roof liner/);
   assert.match(text, /possibly outside the crop/);
   assert.match(text, /5% visible light transmission/);
