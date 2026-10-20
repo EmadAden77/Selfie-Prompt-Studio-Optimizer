@@ -34,12 +34,12 @@ export function resolveContextualOptics(scene: BuildInput): ContextualOptics {
   if (inside && directMidday.has(light.id)) {
     light = appendLight(light,
       'سقف السيارة المعتم يحجب الأشعة العمودية المباشرة؛ تتبع الإبرازات والظلال اتجاه الزجاج المعرض فعلياً للشمس ولا تُفرض ظلال شمس عمودية خارجية على الوجه.',
-      'The opaque vehicle roof blocks direct overhead rays; highlights and cabin shadows follow the glazing actually exposed to the sun, never compulsory outdoor vertical sun shadows.');
+      'The opaque vehicle roof blocks direct overhead rays; a clear windshield is used only when it is the actual exposed path, while highlights and cabin shadows follow the selected source and real glazing, never compulsory outdoor vertical sun shadows.');
     notes.push('roof_shades_overhead_sun');
   } else if (inside && solar.has(light.id)) {
     light = appendLight(light,
       'داخل المقصورة يدخل ضوء النهار من الزجاج أو الفتحات المعرضة فعلياً فقط؛ يحجب السقف الضوء العمودي، وتبقى خصائص هذا المصدر من حيث اللون والنعومة والاتجاه محفوظة.',
-      'Inside the cabin, daylight enters only through genuinely exposed glazing or openings; the roof blocks overhead sun while preserving this selected source\'s color, softness and direction.');
+      'Inside the cabin, daylight enters only through genuinely exposed glazing or openings, including a clear windshield only when it is the actual path; the roof blocks overhead sun while preserving this selected source\'s color, softness and direction.');
     notes.push('cabin_daylight_window_path');
   }
   if (inside && tintIsHeavy && solar.has(light.id)) {
@@ -58,7 +58,7 @@ export function resolveContextualOptics(scene: BuildInput): ContextualOptics {
     // Preserve the selected night source while constraining its transmission path.
     light = appendLight(light,
       'مصدر الإضاءة الليلية المختار يبقى كما هو، لكن وصوله للمقصورة يمر عبر الزجاج المتاح؛ يضعف بشدة عبر الزجاج الجانبي والخلفي المظلل، مع ظلال عميقة وتعريض هاتف محدود دون إضاءة تعبئة مخفية.',
-      'The selected night source remains unchanged, but its cabin transmission follows the available glazing; it is strongly attenuated through dark side and rear glass, with deep cabin shadows and limited phone exposure, never hidden studio fill.');
+      'The selected night source remains unchanged, but its cabin transmission follows the available glazing, including a clear windshield only when it is the actual path; it is strongly attenuated through dark side and rear glass, with deep cabin shadows and limited phone exposure, never hidden studio fill.');
     notes.push('heavy_tint_night_transmission');
   }
 
