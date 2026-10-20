@@ -525,6 +525,9 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
       const v = extras(arr, lang);
       return v ? name + v : undefined;
     };
+    const timeOfDay = i.timeOfDay && i.timeOfDay !== 'auto'
+      ? (ar ? `وقت الالتقاط المختار: ${i.timeOfDay}.` : `Selected capture time: ${i.timeOfDay}.`)
+      : undefined;
     const accessory = ['none', 'natural', 'no_accessory'].includes(i.accessory.id) ? undefined : pick(i.accessory);
     const beard = i.beard.id === 'ref_fresh_trimmed_neat'
       ? (ar ? 'احتفظ بلحية الصورة المرجعية وحدودها الطبيعية دون تشذيب أو إعادة رسم' : 'Preserve the beard, natural cheekline, neckline, mustache and growth gaps as actually visible; no added grooming')
@@ -537,7 +540,8 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
         'Use the attached reference as the only facial identity source. Preserve visible face geometry, skin tone, age, asymmetry, hairline, beard density and boundaries; do not invent unseen traits.',
       ar ? `الطول ${SUBJECT_HEIGHT_CM} سم، الوزن ${SUBJECT_WEIGHT_KG} كجم، بنية رياضية نحيلة.` :
         `Height ${SUBJECT_HEIGHT_CM}cm, weight ${SUBJECT_WEIGHT_KG}kg, lean athletic build.`,
-      pick(i.hair), beard, expr
+      pick(i.hair), beard, expr,
+      optional(ar ? 'تفاصيل جلدية ظاهرة من المرجع: ' : 'Reference-visible skin details: ', i.skinNuances)
     ]);
     append(ar ? 'الكاميرا والتكوين' : 'CAMERA AND COMPOSITION', [
       ar ? 'سيلفي حقيقي بيد واحدة؛ الشخص العنصر الرئيسي، والخلفية لا تظهر إلا إن سمحت زاوية عدسة الهاتف. لا يُفرض امتداد الذراع الأقصى.' :
@@ -550,7 +554,9 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
     append(ar ? 'الوضعية والملابس' : 'POSTURE AND CLOTHING', [
       pick(i.pose), pick(i.cloth), accessory,
       optional(ar ? 'سلوك القماش: ' : 'Fabric response: ', close ? i.fabrics.filter(x => x.id !== 'seat_hip_creases') : i.fabrics),
-      optional(ar ? 'الحركة: ' : 'Motion: ', i.gripMotions.filter(x => x.id !== 'natural_arm_stretch'))
+      optional(ar ? 'الحركة: ' : 'Motion: ', i.gripMotions.filter(x => x.id !== 'natural_arm_stretch')),
+      optional(ar ? 'إشارة القامة وملاءمة المقصورة: ' : 'Height and cabin-fit cue: ', [i.heightCue]),
+      optional(ar ? 'سياق اللحظة: ' : 'Candid story context: ', [i.storyline])
     ]);
     append(ar ? 'المكان والضوء الفيزيائي' : 'SCENE AND PHYSICAL LIGHTING', [
       inside
@@ -564,6 +570,12 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
               : `Standing outside beside a ${pick(i.carColor)} ${pick(i.carModel)}.`),
       pick(i.light),
       i.tint.en.trim() ? pick(i.tint) : undefined,
+      timeOfDay,
+      optional(ar ? 'توهج تحت السطح: ' : 'Subsurface response: ', i.subsurfaces),
+      optional(ar ? 'حرارة المشهد: ' : 'Thermal cues: ', i.thermals),
+      optional(ar ? 'تفاعل الهواء: ' : 'Airflow interaction: ', i.airflows),
+      optional(ar ? 'تفاعل ضوء الشاشات: ' : 'Screen-light interaction: ', i.screenCasts),
+      optional(ar ? 'إرجونوميا القامة: ' : 'Tall-subject ergonomics: ', i.tallErgonomics),
       ar ? 'كل ظل وانعكاس ولمعة عين مرتبط بمصدر موجود واتجاه وشدة منطقية؛ لا إضاءة تعبئة أو ارتداد أبيض بلا مصدر، والثوب يعكس الضوء فقط.' :
         'Every shadow, catchlight and reflection must originate from a physically plausible light source, direction and intensity. White clothing reflects existing light; no invented fill.',
       optional(ar ? 'تفاصيل مكانية مرئية: ' : 'Visible environment: ', close ? [] : i.cabins),
@@ -574,7 +586,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
     ]);
     append(ar ? 'ضوابط واقعية نهائية' : 'FINAL REALISM CHECK', [
       ar ? 'لا أيدٍ إضافية، لا تفاصيل خارج مجال الكاميرا، لا تجميل للهوية أو وهج غير مبرر، ولا تأطير إعلاني للسيارة.' :
-        'No extra hands, off-frame details, identity retouching, unmotivated glow or automotive-commercial framing.'
+        `No extra hands, off-frame details, identity retouching, unmotivated glow or automotive-commercial framing. Avoid these failure modes: ${ANTI_AI_BLOCKLIST.join(', ')}.`
     ]);
     return normalized(sections.join('\n\n'));
   };
