@@ -730,11 +730,20 @@ export function validateAndSanitizePhysics(input: BuildInput): {
       field: 'hair',
     });
   }
-  if (isInside && input.anatomicalExpr.id === 'sun_squint_lines') {
+  if (input.anatomicalExpr.id === 'sun_squint_lines') {
+    const effectiveDirectSun = ['harsh_noon','noon_sun','golden_hour'].includes(sanitizedLight.id);
     sanitizedAnatomicalExpr = {
       ...input.anatomicalExpr,
-      ar: 'تضيّق جفون طفيف فقط إذا وصل وهج فعلي من الزجاج إلى العينين؛ دون تجاعيد عمرية جديدة',
-      en: 'Slight natural eyelid narrowing only if genuine windshield glare reaches the eyes; do not invent age-related wrinkles',
+      ar: effectiveDirectSun
+        ? (isInside
+          ? 'تضيّق جفون طفيف فقط إذا وصل وهج فعلي عبر الزجاج الأمامي للعينين، دون تجاعيد عمرية جديدة'
+          : 'تضيّق جفون خفيف بسبب شمس فعلية إذا واجهتها العينان، دون إضافة تجاعيد غير ظاهرة في المرجع')
+        : 'جفون مرتاحة بلا افتراض وهج الشمس أو تجاعيد إضافية',
+      en: effectiveDirectSun
+        ? (isInside
+          ? 'Slight eyelid narrowing only if actual windshield glare reaches the eyes; no invented age-related wrinkles'
+          : 'Subtle eyelid squint only when eyes actually face sunlight, without adding unsupported age lines')
+        : 'Relaxed natural eyelids without assumed sunlight or invented wrinkles',
     };
   }
   // The report reflects the FINAL light and camera state, not the initial raw
@@ -745,6 +754,18 @@ export function validateAndSanitizePhysics(input: BuildInput): {
         ? 'golden_hour' : sanitizedLight.id === 'direct_flash'
           ? 'flash' : ['basement_tubes','station_canopy','station_led'].includes(sanitizedLight.id)
             ? 'artificial_indoor' : 'night';
+  }
+  if (sanitizedLight.id !== lightId) {
+    const effective = sanitizedLight.id;
+    report.lightingProfile.ambientKelvin = ['harsh_noon','noon_sun','soft_morning','afternoon_diffuse','overcast_haze'].includes(effective)
+      ? 'daylight spectrum (dependent on real sky)' : ['golden_hour','sunset_glow'].includes(effective)
+        ? 'warm low-angle sunset daylight' : effective === 'sodium_street'
+          ? 'warm amber sodium practical light' : effective === 'led_modern_street'
+            ? 'neutral or cool white LED practical light' : effective === 'basement_tubes'
+              ? '4000K–5000K utility fixture' : effective === 'direct_flash'
+                ? 'camera flash or screen-emitter spectrum as available' : 'available practical lighting';
+    report.lightingProfile.lightFalloff = 'Physical light-source dependent falloff and obstruction';
+    report.lightingProfile.shadowBehavior = 'Shadows follow the effective real lighting and local scene geometry';
   }
   if (isInside && ['harsh_noon','noon_sun'].includes(sanitizedLight.id)) {
     report.lightingProfile.lightFalloff = 'Window-directed daylight with roof occlusion and tint-dependent side transmission';
