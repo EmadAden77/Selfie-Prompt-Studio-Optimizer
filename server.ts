@@ -16,12 +16,14 @@ const MAX_NOTE_LENGTH = 2_000;
 const MAX_PROMPT_LENGTH = 12_000;
 const MAX_API_KEY_LENGTH = 300;
 const RATE_WINDOW_MS = 60_000;
+const RATE_BUCKET_CLEANUP_INTERVAL_MS = 15_000;
 const MAX_REQUESTS_PER_WINDOW = 30;
 
 type JsonRecord = Record<string, unknown>;
 type RateBucket = { startedAt: number; count: number };
 
 const rateBuckets = new Map<string, RateBucket>();
+let lastRateBucketCleanupAt = 0;
 
 function asRecord(value: unknown): JsonRecord {
   return typeof value === 'object' && value !== null ? value as JsonRecord : {};
@@ -112,8 +114,11 @@ app.use('/api', (req, res, next) => {
 function rateLimitGemini(req: Request, res: Response, next: NextFunction): void {
   const now = Date.now();
 
-  for (const [key, bucket] of rateBuckets) {
-    if (now - bucket.startedAt >= RATE_WINDOW_MS) rateBuckets.delete(key);
+  if (now - lastRateBucketCleanupAt >= RATE_BUCKET_CLEANUP_INTERVAL_MS) {
+    for (const [key, bucket] of rateBuckets) {
+      if (now - bucket.startedAt >= RATE_WINDOW_MS) rateBuckets.delete(key);
+    }
+    lastRateBucketCleanupAt = now;
   }
 
   const key = req.ip || 'unknown';
