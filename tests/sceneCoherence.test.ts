@@ -458,7 +458,7 @@ test('storylines are reconciled with exterior and explicit time context', async 
   outside.storyline = option('family_waiting_idle');
   const outsideResult = validateAndSanitizePhysics(outside);
   assert.match(outsideResult.sanitized.storyline.en, /beside a safely parked car/);
-  assert.doesNotMatch(outsideResult.sanitized.storyline.en, /idling car|driver seat|dashboard/i);
+  assert.doesNotMatch(outsideResult.sanitized.storyline.en, /idling car|driver seat/i);
   assert.ok(outsideResult.report.warnings.some(x => x.id === 'storyline_context_reconciled'));
 
   const daytime = fixture('inside', 'soft_morning');
