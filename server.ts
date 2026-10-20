@@ -79,6 +79,7 @@ const ai = apiKey ? createGeminiClient(apiKey) : null;
 const configuredCorsOrigin = readText(process.env.CORS_ORIGIN || process.env.APP_URL, 500).replace(/\/$/, '');
 
 app.disable('x-powered-by');
+app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS) || 1);
 app.use(express.json({ limit: '32kb' }));
 
 app.use('/api', (req, res, next) => {
@@ -86,7 +87,11 @@ app.use('/api', (req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
   const origin = req.headers.origin;
-  if (origin && configuredCorsOrigin && origin === configuredCorsOrigin) {
+  if (origin && configuredCorsOrigin && origin !== configuredCorsOrigin) {
+    return res.status(403).json({ success: false, error: 'Origin is not allowed.' });
+  }
+
+  if (origin && configuredCorsOrigin) {
     res.setHeader('Access-Control-Allow-Origin', configuredCorsOrigin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -94,10 +99,7 @@ app.use('/api', (req, res, next) => {
   }
 
   if (req.method === 'OPTIONS') {
-    if (!origin || (configuredCorsOrigin && origin === configuredCorsOrigin)) {
-      return res.sendStatus(204);
-    }
-    return res.status(403).json({ success: false, error: 'Origin is not allowed.' });
+    return res.sendStatus(204);
   }
 
   next();
@@ -133,6 +135,13 @@ function rateLimitGemini(req: Request, res: Response, next: NextFunction): void 
 }
 
 app.use('/api/gemini', rateLimitGemini);
+app.use('/api/gemini', (req, res, next) => {
+  if (req.method === 'POST' && !req.is('application/json')) {
+    res.status(415).json({ success: false, error: 'يجب إرسال الطلب بصيغة JSON.' });
+    return;
+  }
+  next();
+});
 
 function sendGeminiUnavailable(res: Response): void {
   res.status(503).json({
