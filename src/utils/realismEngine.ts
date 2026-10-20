@@ -425,11 +425,13 @@ export function validateAndSanitizePhysics(input: BuildInput): {
 
   // Exterior selfies must not inherit tint physics as if the camera was behind the glass.
   const sanitizedTint = isOutside
-    ? {
-        id: 'exterior_glass_only',
-        ar: 'تظليل الزجاج يظهر فقط على نوافذ السيارة في الخلفية؛ لا يغيّر إضاءة الوجه خارجها',
-        en: 'window tint affects only the vehicle glass in the background, never the exterior subject exposure',
-      }
+    ? input.frame.id === 'close_face'
+      ? { id: 'tint_not_visible', ar: '', en: '' }
+      : {
+          ...input.tint,
+          ar: 'عند ظهور زجاج السيارة في طرف الكادر فقط: ' + input.tint.ar + '، من دون تعتيم الوجه خارج السيارة.',
+          en: 'Only if the vehicle windows are visible near the frame edge: ' + input.tint.en + '; tint does not darken the face standing outside.',
+        }
     : input.tint;
 
   // Facial detail comes solely from the attached reference. No fabricated freckles or scars.
@@ -666,6 +668,18 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   sanitizedCabins = gate('cabins', sanitizedCabins);
   sanitizedCabinArtifacts = gate('cabinArtifacts', sanitizedCabinArtifacts);
   sanitizedClutters = gate('clutters', sanitizedClutters);
+  // Limit secondary objects to an incidental few; two distinct items are enough
+  // to communicate lived-in clutter without taking attention away from the face.
+  if (sanitizedClutters.length > 2) {
+    sanitizedClutters = sanitizedClutters.slice(0, 2);
+    warnings.push({
+      id: 'clutter_visibility_budget', level: 'auto-correction',
+      titleAr: 'تخفيف ازدحام المقصورة', titleEn: 'Cabin clutter reduced',
+      descAr: 'اقتصر وصف العناصر الثانوية على عنصرين كي لا ينافسا الوجه أو يظهرا قسريًا.',
+      descEn: 'Kept at most two incidental cabin objects to preserve face-first framing.',
+      field: 'clutters',
+    });
+  }
   sanitizedDashUis = gate('dashUis', sanitizedDashUis);
   sanitizedAirflows = gate('airflows', sanitizedAirflows);
   sanitizedScreenCasts = gate('screenCasts', sanitizedScreenCasts);
