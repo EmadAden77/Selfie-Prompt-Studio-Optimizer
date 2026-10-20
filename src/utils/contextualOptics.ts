@@ -75,6 +75,30 @@ export function resolveContextualOptics(scene: BuildInput): ContextualOptics {
     }
   }
 
+  // The free hand cannot simultaneously adjust the collar, grip the wheel,
+  // and hold a cup or keys. Resolve accessories by occupied-hand geometry.
+  const freeHandBusy = ['hand_on_wheel', 'adjust_collar'].includes(scene.pose.id) ||
+    scene.tallErgonomics.some(x => ['roof_handle_grip', 'forearm_span_wheel'].includes(x.id));
+  if (accessory.id === 'specialty_cup' && freeHandBusy) {
+    accessory = inside && !close
+      ? natural('specialty_cup', 'كوب قهوة ورقي موضوع في حامل الأكواب إذا دخل في مجال الرؤية، وليس بيد ثالثة',
+        'A paper coffee cup resting in a cup holder only if that area is visible, never carried by a third hand')
+      : natural('none', '', '');
+    notes.push('cup_hand_conflict_resolved');
+  }
+  if (accessory.id === 'car_key' && freeHandBusy) {
+    accessory = inside && !close
+      ? natural('car_key', 'مفتاح السيارة موضوع على الكونسول فقط إذا كان ظاهرًا في الكادر',
+        'A car key fob on the console only if actually within frame, not held by an additional hand')
+      : natural('none', '', '');
+    notes.push('key_hand_conflict_resolved');
+  }
+  if (accessory.id === 'luxury_watch') {
+    accessory = natural('luxury_watch',
+      'ساعة على معصم ذراع السيلفي فقط إذا كان المعصم داخل الكادر دون تمديد مصطنع للذراع',
+      'A wristwatch on the selfie arm only if the actual wrist appears in the crop, without artificial arm extension');
+  }
+
   // No assumed iris colour, added wrinkles, follicle-level reconstruction,
   // unseen body parts or studio lighting is inserted here.
   return { light, angle, pose, hair, accessory, notes };
