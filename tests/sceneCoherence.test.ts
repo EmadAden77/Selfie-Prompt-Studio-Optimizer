@@ -44,3 +44,34 @@ test('valid interior lighting remains selected', () => {
   const { sanitized } = validateAndSanitizePhysics(fixture('inside', 'basement_tubes'));
   assert.equal(sanitized.light.id, 'basement_tubes');
 });
+
+test('inside cabin does not duplicate free hand or airflow', () => {
+  const scene = fixture('inside', 'basement_tubes');
+  scene.pose = option('hand_on_wheel');
+  scene.tallErgonomics = [option('forearm_span_wheel'), option('roof_handle_grip')];
+  scene.airflows = [option('cabin_dead_calm'), option('window_quarter_drift')];
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  assert.equal(sanitized.tallErgonomics.some(x => x.id === 'roof_handle_grip'), false);
+  assert.deepEqual(sanitized.airflows.map(x => x.id), ['cabin_dead_calm']);
+});
+
+test('interior shirt without collar cannot adjust a thobe collar', () => {
+  const scene = fixture('inside', 'basement_tubes');
+  scene.pose = option('adjust_collar');
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  assert.equal(sanitized.pose.id, 'arm_out');
+});
+
+test('selected direct flash excludes redundant screen flash', () => {
+  const scene = fixture('inside', 'direct_flash');
+  scene.inAppArtifacts = [option('front_screen_flash_burst'), option('snap_night_grain')];
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  assert.deepEqual(sanitized.inAppArtifacts.map(x => x.id), ['snap_night_grain']);
+});
+
+test('interior headrest does not default to impossible highest setting', () => {
+  const scene = fixture('inside', 'basement_tubes');
+  scene.heightCue = option('headrest_max');
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  assert.equal(sanitized.heightCue.id, 'headrest_adjusted');
+});
