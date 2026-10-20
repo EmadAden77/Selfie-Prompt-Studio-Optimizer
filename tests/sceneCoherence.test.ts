@@ -407,3 +407,48 @@ test('five-percent window tint reduces nighttime exterior light but not front-fa
   const output = validateAndSanitizePhysics(lighter).sanitized;
   assert.doesNotMatch(output.light.en, /strongly attenuated through dark side/);
 });
+
+test('every visible context control reaches the final English prompt', async () => {
+  const { buildPrompt } = await import('../src/data/studioData');
+  const scene = fixture('inside', 'sodium_street');
+  scene.timeOfDay = 'night';
+  scene.heightCue = option('height-cue-selected');
+  scene.storyline = option('storyline-selected');
+  scene.skinNuances = [option('skin-detail-selected')];
+  scene.subsurfaces = [option('subsurface-selected')];
+  scene.thermals = [option('thermal-selected')];
+  scene.airflows = [option('airflow-selected')];
+  scene.screenCasts = [option('screen-cast-selected')];
+  scene.tallErgonomics = [option('ergonomic-selected')];
+
+  const prompt = buildPrompt(scene).en;
+
+  for (const selected of [
+    'height-cue-selected',
+    'storyline-selected',
+    'skin-detail-selected',
+    'subsurface-selected',
+    'thermal-selected',
+    'airflow-selected',
+    'screen-cast-selected',
+    'ergonomic-selected',
+    'Selected capture time: night.'
+  ]) {
+    assert.ok(prompt.includes(selected), selected);
+  }
+});
+
+test('contextual optics preserves the selected daylight character while adding cabin geometry', async () => {
+  const { LIGHTING_OPTIONS } = await import('../src/data/studioData');
+  const { resolveContextualOptics } = await import('../src/utils/contextualOptics');
+  const scene = fixture('inside', 'soft_morning');
+  scene.loc = { id: 2, zone: 'inside', ar: 'Location', en: 'Location' };
+  scene.light = LIGHTING_OPTIONS.find(x => x.id === 'soft_morning')!;
+  scene.tint = option('tint_extra_dark_05');
+
+  const resolved = resolveContextualOptics(scene);
+
+  assert.match(resolved.light.en, /crisp early morning soft natural daylight/);
+  assert.match(resolved.light.en, /preserving this selected source's color, softness and direction/);
+});
+\n
