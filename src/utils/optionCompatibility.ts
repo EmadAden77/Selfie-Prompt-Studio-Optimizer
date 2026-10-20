@@ -1,7 +1,7 @@
 import type { Zone } from '../types/studio';
 
 export type SceneTime = 'auto' | 'day' | 'sunset' | 'night';
-export type OptionGroup = 'cabins' | 'cabinArtifacts' | 'clutters' | 'dashUis' | 'airflows' | 'screenCasts' | 'tallErgonomics' | 'poses' | 'lighting' | 'inAppArtifacts' | 'heightCue' | 'fabrics' | 'thermals';
+export type OptionGroup = 'cabins' | 'cabinArtifacts' | 'clutters' | 'dashUis' | 'airflows' | 'screenCasts' | 'tallErgonomics' | 'poses' | 'lighting' | 'inAppArtifacts' | 'heightCue' | 'fabrics' | 'thermals' | 'microWeather' | 'subsurfaces' | 'opticals' | 'gripMotions' | 'accessories';
 
 export interface OptionContext {
   zone: Zone;
@@ -25,6 +25,8 @@ const garmentHasCollar = (id: string) => ['thobe', 'shirt', 'linen', 'collar'].s
 /** A single policy shared by visible options and prompt boundary checks. Null = selectable. */
 export function optionLockReason(group: OptionGroup, id: string, context: OptionContext): string | null {
   if (context.zone === 'outside') {
+    if (group === 'microWeather' && ['raindrop_streak_window','travel_dust_corner'].includes(id)) return 'تفاصيل زجاج المقصورة غير متاحة خارج السيارة';
+    if (group === 'gripMotions' && id === 'steering_hand_microblur') return 'المقود غير متاح خارج السيارة';
     if (['cabins', 'cabinArtifacts', 'clutters', 'dashUis', 'screenCasts', 'airflows'].includes(group)) return 'هذا الخيار يخص مقصورة السيارة ولا يصلح للتصوير خارجها';
     if (group === 'tallErgonomics' && ['forearm_span_wheel', 'roof_handle_grip'].includes(id)) return 'هذه الحركة مرتبطة بمقعد السائق';
     if (group === 'poses' && stationaryInteriorOnly.has(id)) return 'الوضعية تتطلب الجلوس داخل السيارة';
@@ -37,6 +39,8 @@ export function optionLockReason(group: OptionGroup, id: string, context: Option
   if (context.frameId === 'close_face' && group === 'cabinArtifacts' && id === 'fresh_miswak_console') return 'Cup holder outside close framing';
   if (context.frameId === 'close_face' && group === 'fabrics' && id === 'seat_hip_creases') return 'Off-frame lap';
   if (context.frameId === 'close_face' && group === 'thermals' && id === 'cup_sweat_droplets') return 'Off-frame cup';
+  if (group === 'subsurfaces' && id === 'thobe_jaw_bounce' && !context.clothId.includes('thobe')) return 'انعكاس الثوب يتطلب ارتداء ثوب أبيض';
+  if (group === 'microWeather' && id === 'winter_breath_fade' && ['harsh_noon','noon_sun','golden_hour','afternoon_diffuse'].includes(context.lightingId)) return 'بخار النفس الصباحي لا يناسب ضوء الظهيرة';
   if (group === 'poses' && id === 'adjust_collar' && !garmentHasCollar(context.clothId)) return 'الملابس الحالية بلا ياقة يمكن تعديلها';
   if (group === 'airflows' && context.selectedAirflowIds.includes('cabin_dead_calm') && id !== 'cabin_dead_calm') return 'سكون الهواء لا يجتمع مع تيار يحرك الشعر';
   if (group === 'airflows' && id === 'cabin_dead_calm' && context.selectedAirflowIds.some(x => x !== 'cabin_dead_calm')) return 'اختر السكون أو تيار الهواء، وليس كليهما';
