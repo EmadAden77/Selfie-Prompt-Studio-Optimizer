@@ -511,7 +511,6 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
     ))].join(language === 'ar' ? '، ' : '; ');
   const normalized = (value: string) => value
     .replace(/\b(?:Preserve\s+){2,}/gi, 'Preserve ')
-    .replace(/\b(?:STRICT|MANDATORY|ABSOLUTE)\b:?/gi, '')
     .replace(/\s+\./g, '.').replace(/\n{3,}/g, '\n\n').trim();
   const build = (lang: 'ar' | 'en') => {
     const ar = lang === 'ar';
