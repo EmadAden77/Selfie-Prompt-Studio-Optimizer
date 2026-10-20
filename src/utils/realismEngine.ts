@@ -418,9 +418,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   }
 
   // Optical artifacts are conditional on camera perspective, never fabricated per-pixel.
-  const sanitizedOpticals = input.opticals.filter(x =>
-    !['fake_portrait_blur', 'artificial_bokeh', 'fake_8k_sharpness'].includes(x.id)
-  );
+  // Optical consistency is resolved in the final cross-field pass.
 
   // Exterior selfies must not inherit tint physics as if the camera was behind the glass.
   const sanitizedTint = isOutside
@@ -495,6 +493,76 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     });
   }
 
+
+  // Final cross-field resolution runs after zone-specific rules. Saved presets and
+  // restored sessions pass through the same gate as visible UI selections.
+  const daylightIds = new Set(['harsh_noon','noon_sun','soft_morning','afternoon_diffuse','overcast_haze','golden_hour']);
+  const warmWeatherIds = new Set(['harsh_noon','noon_sun','golden_hour','afternoon_diffuse']);
+  const isDaylight = daylightIds.has(sanitizedLight.id);
+  const isDirectSun = ['harsh_noon','noon_sun','golden_hour'].includes(sanitizedLight.id);
+  const closeFace = input.frame.id === 'close_face';
+  const hasThobe = input.cloth.id.includes('thobe');
+
+  // Climate: condensed breath requires sufficiently cold ambient air. Never
+  // invent a cold winter morning under high/noon sun.
+  sanitizedMicroWeathers = sanitizedMicroWeathers.filter(x =>
+    x.id !== 'winter_breath_fade' || !warmWeatherIds.has(sanitizedLight.id)
+  );
+
+  // Car glass and cabin displays cannot be reflected on an exterior face
+  // merely because a car is present. Eye colour is determined by the reference.
+  // A catchlight is contingent on geometry and an actual emitter.
+  const safeCatchlight = {
+    id: 'catchlight_reflection',
+    ar: 'انعكاس عين طبيعي من الشمس أو السماء أو شاشة الهاتف فقط إن سمح موضع المصدر واتجاه النظر، دون تغيير لون القزحية',
+    en: 'Natural eye catchlights only from physically positioned sun, sky or phone screen where geometry permits; retain reference iris color',
+  };
+  const sanitizedOpticals = input.opticals
+    .filter(x => !['fake_portrait_blur','artificial_bokeh','fake_8k_sharpness'].includes(x.id))
+    .map(x => x.id === 'catchlight_reflection' ? safeCatchlight :
+      x.id === 'chroma_shadow_noise' && isOutside
+        ? { ...x, ar: 'ضوضاء مستشعر خفيفة فقط في الظلال المرئية داخل الكادر', en: 'Mild smartphone sensor noise only in visible shaded image regions' } : x);
+
+  // Avoid measuring arm reach from total standing height.
+  const sanitizedGripMotions = input.gripMotions.map(x => x.id === 'natural_arm_stretch'
+    ? { ...x,
+        ar: 'امتداد مريح لذراع السيلفي مع ثني طبيعي للمرفق واستجابة بسيطة للكتف',
+        en: 'Comfortable one-handed selfie reach with natural elbow flexion and relaxed shoulder' }
+    : x.id === 'steering_hand_microblur' && isOutside
+      ? { ...x, ar: 'اهتزاز حركة يد عفوي فقط إن ظهر في الكادر', en: 'Subtle candid hand motion blur only if the free hand is visible' }
+      : x);
+
+  // Seatbelt and seated-lap effects belong to the cabin, not a standing shot.
+  sanitizedFabrics = sanitizedFabrics
+    .filter(x => !(isOutside && x.id === 'seat_hip_creases'))
+    .map(x => x.id === 'collar_tilt_tension' && isOutside
+      ? { ...x, ar: 'تغير طفيف في ثنيات الياقة بسبب حركة الرقبة والجسم، دون حزام أمان', en: 'Subtle collar movement from neck rotation and natural body movement, without seatbelt tension' }
+      : x);
+
+  // Backlit cartilage translucency must be conditional; reflected light from
+  // a white garment is only available when that garment is actually illuminated.
+  sanitizedSubsurfaces = sanitizedSubsurfaces.filter(x =>
+    x.id !== 'thobe_jaw_bounce' || hasThobe
+  ).map(x => x.id === 'ear_cartilage_glow'
+    ? { ...x, ar: 'شفافية أذن خفيفة فقط إذا مر ضوء فعلي خلف الأذن', en: 'Subtle ear translucency only if actual backlighting reaches the ear' }
+    : x.id === 'thobe_jaw_bounce'
+      ? { ...x, ar: 'انعكاس ضعيف من الثوب الأبيض فقط إذا سقط عليه ضوء حقيقي', en: 'Weak reflected light from white thobe only when a real light source illuminates the fabric' }
+      : x);
+
+  // An observed expression may involve normal lid narrowing, never newly
+  // invented crow feet or assumptions of sun glare at night.
+  const sanitizedAnatomicalExpr = input.anatomicalExpr.id === 'sun_squint_lines'
+    ? { ...input.anatomicalExpr,
+      ar: isDirectSun ? 'تضيّق طبيعي خفيف للجفون بسبب وهج الشمس دون إضافة تجاعيد جديدة' : 'جفون مرتاحة وتعبير عفوي دون ضوء شمس مفترض',
+      en: isDirectSun ? 'Natural mild eyelid squint from direct sun, without invented wrinkles' : 'Relaxed candid eyelids without assumed sun glare' }
+    : input.anatomicalExpr;
+
+  // Prevent redundant off-frame descriptions from noise or UI modules.
+  if (closeFace) {
+    sanitizedThermals = sanitizedThermals.filter(x => x.id !== 'cup_sweat_droplets');
+    sanitizedFabrics = sanitizedFabrics.filter(x => x.id !== 'seat_hip_creases');
+  }
+
   // 5. Calculate Realism Coherence Score
   const score = Math.max(65, 100 - deduction);
   const isCoherent = score >= 80;
@@ -562,6 +630,8 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     microWeathers: sanitizedMicroWeathers,
     inAppArtifacts: sanitizedInAppArtifacts,
     opticals: sanitizedOpticals,
+    gripMotions: sanitizedGripMotions,
+    anatomicalExpr: sanitizedAnatomicalExpr,
     tint: sanitizedTint,
     skinNuances: sanitizedSkinNuances,
     fabrics: sanitizedFabrics,
