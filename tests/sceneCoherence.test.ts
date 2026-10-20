@@ -149,3 +149,36 @@ test('prompt policy drops white-cloth reflection for black t-shirt', () => {
   const output = validateAndSanitizePhysics(x).sanitized;
   assert.deepEqual(output.subsurfaces.map(y => y.id), ['beard_follicle_shadow']);
 });
+
+test('all locations preserve zone constraints across frames and lighting', async () => {
+  const { LOCATIONS, buildPrompt } = await import('../src/data/studioData');
+  for (const loc of LOCATIONS) {
+    for (const frame of ['close_face','half_body','wide_outside']) {
+      for (const light of ['harsh_noon','sodium_street','direct_flash']) {
+        const x = fixture(loc.zone,light);
+        x.loc = loc;
+        x.frame = option(frame);
+        x.cabins = [option('large_hand_gear'), option('tissue_box_console')];
+        x.clutters = [option('door_pocket_keys')];
+        x.microWeathers = [option('winter_breath_fade'), option('travel_dust_corner')];
+        x.fabrics = [option('seat_hip_creases'), option('collar_tilt_tension')];
+        const {sanitized} = validateAndSanitizePhysics(x);
+        const generated = buildPrompt(sanitized).en;
+        assert.ok(generated.includes('Height 193cm'));
+        assert.ok(!generated.includes('Preserve preserve'));
+        if (loc.zone === 'outside') {
+          assert.equal(sanitized.cabins.length,0);
+          assert.equal(sanitized.clutters.length,0);
+          assert.ok(!generated.includes('gear shifter'));
+        }
+        if (frame === 'close_face') {
+          assert.equal(sanitized.cabins.some(o => o.id === 'large_hand_gear'),false);
+          assert.equal(sanitized.fabrics.some(o => o.id === 'seat_hip_creases'),false);
+        }
+        if (light === 'harsh_noon') {
+          assert.equal(sanitized.microWeathers.some(o => o.id === 'winter_breath_fade'),false);
+        }
+      }
+    }
+  }
+});
