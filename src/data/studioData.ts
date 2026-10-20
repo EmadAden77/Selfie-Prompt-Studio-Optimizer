@@ -496,7 +496,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
 
 📷 تأطير السيلفي والكاميرا ومحاكاة التطبيقات:
 - التأطير المباشر: ${i.frame.ar}.
-- الكاميرا: تم الالتقاط بواسطة (${i.phone.ar})، زاوية (${i.angle.ar}) ممسوكة بيد الشخص على مسافة ذراع واحدة (امتداد طبيعي 75 سم).
+- الكاميرا: تم الالتقاط بواسطة (${i.phone.ar})، زاوية (${i.angle.ar}) ممسوكة بيد الشخص على امتداد طبيعي لذراعه يناسب زاوية الكاميرا.
 - الوضعية وحركة اليد: ${i.pose.ar}.
 - تأثيرات العدسة ومستشعر الهاتف: ${joinAr(i.opticals)}.
 - تفاعل قبضة اليد والاهتزاز الطبيعي: ${joinAr(i.gripMotions)}.
@@ -527,17 +527,19 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
 - فيزياء الطقس والمناخ المجهري: ${joinAr(i.thermals)}.
 - تفاصيل الطقس الموضعي اللحظي: ${joinAr(i.microWeathers)}.
 
-${interiorPhysicsAr}\n\n🚫 ممنوعات قطعية: ${ANTI_AI_BLOCKLIST.join("، ")}.
+${interiorPhysicsAr}
+
+🚫 ممنوعات قطعية: ${ANTI_AI_BLOCKLIST.join("، ")}.
 📐 أبعاد الصورة: ${i.aspect.ar}.`;
 
   const en = `👑 MASTER COMPOSITION MANDATE: SUBJECT-FIRST SELFIE HIERARCHY
-The reference person is the ABSOLUTE PRIMARY SUBJECT and dominant focal point of the image, occupying 75% to 85% of the frame as a realistic close/medium smartphone selfie held at arm's length (natural ~75cm reach).
+The reference person is the ABSOLUTE PRIMARY SUBJECT and dominant focal point of the image, occupying 75% to 85% of the frame as a realistic close/medium smartphone selfie held at a plausible one-handed arm's length appropriate to the person, camera and visible perspective.
 ANY OTHER ELEMENT (the vehicle, steering wheel, dashboard, street, buildings) is strictly INCIDENTAL & SECONDARY BACKGROUND, visible ONLY if and where the organic selfie arm angle naturally permits. NEVER zoom out to show the whole car, NEVER center the vehicle, NEVER frame like an automotive commercial. The man is the photo; the rest is just where he happens to be.
 
 🔒 STRICT IDENTITY & BIOMETRIC DENSITY LOCK:
 - STRICT REQUIREMENT: Exact replication of facial bone structure, head proportions, eye shape, spacing, eyelids, and natural eyebrows from the attached reference photo 1:1.
 - Exact nose contour, lip volume, cheekbones, jawline, chin, and ear shape.
-- Natural Middle Eastern / Saudi skin tone, authentic human facial asymmetry, and apparent age without artificial beautification, smoothing, or airbrushing.
+- The exact original skin tone from the reference (no nationality-based recoloring), authentic human facial asymmetry, and apparent age without artificial beautification, smoothing, or airbrushing.
 - Strictly MANDATORY to preserve the exact original hairline, individual hair texture, and natural hair density.
 - Strictly MANDATORY to preserve the exact original beard and mustache density, shape, and organic un-lasered irregularities.
 - DO NOT invent facial characteristics that are absent from the reference image.
@@ -585,7 +587,9 @@ ANY OTHER ELEMENT (the vehicle, steering wheel, dashboard, street, buildings) is
 - Thermal & Atmospheric Physics: ${joinEn(i.thermals)}.
 - Micro-Climate Atmosphere: ${joinEn(i.microWeathers)}.
 
-${interiorPhysicsEn}\n\n🚫 STRICT FORBIDDEN LIST: ${ANTI_AI_BLOCKLIST.join(", ")}.
+${interiorPhysicsEn}
+
+🚫 STRICT FORBIDDEN LIST: ${ANTI_AI_BLOCKLIST.join(", ")}.
 📐 Target Aspect Ratio: ${i.aspect.en}.`;
 
   return { ar, en };

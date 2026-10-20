@@ -128,7 +128,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
       sanitizedCabins = [];
       sanitizedDashUis = [];
       sanitizedCabinArtifacts = [];
-      sanitizedClutters = input.clutters.filter(c => c.id === 'door_pocket_keys');
+      sanitizedClutters = [];
     }
 
     // AC Airflow outside check
@@ -137,10 +137,10 @@ export function validateAndSanitizePhysics(input: BuildInput): {
       warnings.push({
         id: 'exterior_ac_breeze',
         level: 'auto-correction',
-        titleAr: 'تحويل تكييف الكابينة إلى نسيم خارجي طبيعي',
-        titleEn: 'Converted Interior AC Breeze to Natural Outdoor Airflow',
-        descAr: 'تكييف السيارة لا يؤثر على الشخص خارجها؛ تم تحويله إلى نسيم هواء خارجي طبيعي.',
-        descEn: 'Cabin AC vents cannot reach exterior subject; dynamically converted to realistic outdoor atmospheric breeze.',
+        titleAr: 'استبعاد هواء المكيف داخل المشهد الخارجي',
+        titleEn: 'Excluded cabin AC airflow outside',
+        descAr: 'تكييف السيارة لا يؤثر على الشخص خارجها؛ لم يتم افتراض وجود نسيم خارجي.',
+        descEn: 'Cabin AC vents cannot reach an exterior subject; no outdoor breeze is invented.',
         field: 'airflows',
       });
     }
@@ -402,6 +402,63 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     });
   }
 
+  // Optical and camera consistency is resolved after all scene-specific rules.
+  // A screen-flash / dashboard cast is a local weak emitter, not an invisible fill.
+  const hasScreenOnly = input.inAppArtifacts.some(x => x.id === 'front_screen_flash_burst');
+  if (hasScreenOnly && input.light.id !== 'direct_flash') {
+    // Screen-based frontal fill and strong environmental face lighting are not interchangeable.
+    activeRules.push('فلاش الشاشة مصدر قريب وضعيف مع تناقص الإضاءة في عمق المقصورة، دون ملء ضوئي صناعي');
+  }
+
+  // A driver cannot hold the phone, grip the wheel and roof handle at once.
+  if (isInside && input.pose.id === 'hand_on_wheel') {
+    sanitizedTallErgonomics = sanitizedTallErgonomics.filter(x => x.id !== 'roof_handle_grip');
+  }
+
+  // Optical artifacts are conditional on camera perspective, never fabricated per-pixel.
+  const sanitizedOpticals = input.opticals.filter(x =>
+    !['fake_portrait_blur', 'artificial_bokeh', 'fake_8k_sharpness'].includes(x.id)
+  );
+
+  // Exterior selfies must not inherit tint physics as if the camera was behind the glass.
+  const sanitizedTint = isOutside
+    ? {
+        id: 'exterior_glass_only',
+        ar: 'تظليل الزجاج يظهر فقط على نوافذ السيارة في الخلفية؛ لا يغيّر إضاءة الوجه خارجها',
+        en: 'window tint affects only the vehicle glass in the background, never the exterior subject exposure',
+      }
+    : input.tint;
+
+  // Facial detail comes solely from the attached reference. No fabricated freckles or scars.
+  const sanitizedSkinNuances = input.skinNuances.filter(x =>
+    !['ref_freckles_moles'].includes(x.id)
+  );
+  if (sanitizedSkinNuances.length !== input.skinNuances.length) {
+    warnings.push({
+      id: 'unverified_face_details',
+      level: 'auto-correction',
+      titleAr: 'منع اختراع تفاصيل هوية غير مثبتة',
+      titleEn: 'Unverified facial details removed',
+      descAr: 'أزيل فرض النمش؛ يجب أن يأتي فقط من الصورة المرجعية إذا كان ظاهرًا بالفعل.',
+      descEn: 'No freckles can be mandated unless actually visible in the reference.',
+      field: 'skinNuances',
+    });
+  }
+
+  // Limit conflicting camera-app depth treatments.
+  if (sanitizedInAppArtifacts.some(x => x.id === 'instant_snap_bokeh')) {
+    sanitizedInAppArtifacts = sanitizedInAppArtifacts.filter(x => x.id !== 'instant_snap_bokeh');
+    warnings.push({
+      id: 'artificial_selfie_bokeh',
+      level: 'auto-correction',
+      titleAr: 'إزالة عزل خلفية اصطناعي',
+      titleEn: 'Artificial portrait blur omitted',
+      descAr: 'حدة الوجه والخلفية تتبع عمق المجال الحقيقي لكاميرا الهاتف، دون عزل اصطناعي مفترض.',
+      descEn: 'Background defocus must follow the actual phone lens and distance.',
+      field: 'inAppArtifacts',
+    });
+  }
+
   // 5. Calculate Realism Coherence Score
   const score = Math.max(65, 100 - deduction);
   const isCoherent = score >= 80;
@@ -468,6 +525,9 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     thermals: sanitizedThermals,
     microWeathers: sanitizedMicroWeathers,
     inAppArtifacts: sanitizedInAppArtifacts,
+    opticals: sanitizedOpticals,
+    tint: sanitizedTint,
+    skinNuances: sanitizedSkinNuances,
     heightCue: isInside ? sanitizedHeightCueForClothing : sanitizedHeightCue,
   };
 
