@@ -1,7 +1,7 @@
 import type { Zone } from '../types/studio';
 
 export type SceneTime = 'auto' | 'day' | 'sunset' | 'night';
-export type OptionGroup = 'cabins' | 'cabinArtifacts' | 'clutters' | 'dashUis' | 'airflows' | 'screenCasts' | 'tallErgonomics' | 'poses' | 'lighting' | 'inAppArtifacts' | 'heightCue';
+export type OptionGroup = 'cabins' | 'cabinArtifacts' | 'clutters' | 'dashUis' | 'airflows' | 'screenCasts' | 'tallErgonomics' | 'poses' | 'lighting' | 'inAppArtifacts' | 'heightCue' | 'fabrics' | 'thermals';
 
 export interface OptionContext {
   zone: Zone;
@@ -35,6 +35,8 @@ export function optionLockReason(group: OptionGroup, id: string, context: Option
   if (group === 'poses' && id === 'hand_on_wheel' && context.selectedCabinIds?.includes('large_hand_gear')) return 'Gear hand already selected';
   if (context.frameId === 'close_face' && group === 'cabins' && ['large_hand_gear', 'tissue_box_console'].includes(id)) return 'Below close selfie framing';
   if (context.frameId === 'close_face' && group === 'cabinArtifacts' && id === 'fresh_miswak_console') return 'Cup holder outside close framing';
+  if (context.frameId === 'close_face' && group === 'fabrics' && id === 'seat_hip_creases') return 'Off-frame lap';
+  if (context.frameId === 'close_face' && group === 'thermals' && id === 'cup_sweat_droplets') return 'Off-frame cup';
   if (group === 'poses' && id === 'adjust_collar' && !garmentHasCollar(context.clothId)) return 'الملابس الحالية بلا ياقة يمكن تعديلها';
   if (group === 'airflows' && context.selectedAirflowIds.includes('cabin_dead_calm') && id !== 'cabin_dead_calm') return 'سكون الهواء لا يجتمع مع تيار يحرك الشعر';
   if (group === 'airflows' && id === 'cabin_dead_calm' && context.selectedAirflowIds.some(x => x !== 'cabin_dead_calm')) return 'اختر السكون أو تيار الهواء، وليس كليهما';
