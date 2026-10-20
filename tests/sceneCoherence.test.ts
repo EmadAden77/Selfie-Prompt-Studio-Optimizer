@@ -453,3 +453,20 @@ test('contextual optics preserves the selected daylight character while adding c
   assert.match(resolved.light.en, /preserving this selected source's color, softness and direction/);
 });
 
+test('storylines are reconciled with exterior and explicit time context', async () => {
+  const outside = fixture('outside', 'sodium_street');
+  outside.storyline = option('family_waiting_idle');
+  const outsideResult = validateAndSanitizePhysics(outside);
+  assert.match(outsideResult.sanitized.storyline.en, /beside a safely parked car/);
+  assert.doesNotMatch(outsideResult.sanitized.storyline.en, /idling car|driver seat|dashboard/i);
+  assert.ok(outsideResult.report.warnings.some(x => x.id === 'storyline_context_reconciled'));
+
+  const daytime = fixture('inside', 'soft_morning');
+  daytime.timeOfDay = 'day';
+  daytime.storyline = option('late_night_cruising');
+  const daytimeResult = validateAndSanitizePhysics(daytime);
+  assert.match(daytimeResult.sanitized.storyline.en, /selected capture time/);
+  assert.doesNotMatch(daytimeResult.sanitized.storyline.en, /late night/i);
+  assert.ok(daytimeResult.report.warnings.some(x => x.id === 'storyline_context_reconciled'));
+});
+
