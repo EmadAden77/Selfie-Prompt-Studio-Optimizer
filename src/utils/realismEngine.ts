@@ -1,3 +1,6 @@
+import { optionLockReason } from './optionCompatibility';
+import { analyzeLocationLighting } from './lightingEngine';
+import { LIGHTING_OPTIONS } from '../data/studioData';
 import { BuildInput, Opt, Loc, SUBJECT_HEIGHT_CM } from '../types/studio';
 
 
@@ -612,6 +615,68 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     },
   };
 
+
+  // Scene intelligence final pass: a single compatibility policy controls both
+  // rendered options and persisted/loaded states before prompt assembly.
+  const requestedTime = input.timeOfDay ?? 'auto';
+  const lightingReason = optionLockReason('lighting', sanitizedLight.id, {
+    zone: input.loc.zone, time: requestedTime, lightingId: sanitizedLight.id,
+    poseId: sanitizedPose.id, frameId: input.frame.id, clothId: input.cloth.id,
+    selectedCabinIds: sanitizedCabins.map(x => x.id),
+    selectedAirflowIds: sanitizedAirflows.map(x => x.id),
+    selectedErgonomicIds: sanitizedTallErgonomics.map(x => x.id),
+  });
+  if (lightingReason) {
+    const suggestion = analyzeLocationLighting(input.loc.id, requestedTime);
+    const substitute = LIGHTING_OPTIONS.find(x => x.id === suggestion.primaryRecommendedLightId);
+    if (substitute && !optionLockReason('lighting', substitute.id, {
+      zone: input.loc.zone, time: requestedTime, lightingId: substitute.id,
+      poseId: sanitizedPose.id, clothId: input.cloth.id,
+      selectedAirflowIds: [], selectedErgonomicIds: [],
+    })) {
+      sanitizedLight = { ...substitute };
+      warnings.push({
+        id: 'time_lighting_auto_repair', level: 'auto-correction',
+        titleAr: 'تصحيح مصدر الإضاءة حسب الوقت', titleEn: 'Time and lighting reconciled',
+        descAr: lightingReason, descEn: lightingReason, field: 'light',
+      });
+    }
+  }
+  const policyContext = {
+    zone: input.loc.zone,
+    time: requestedTime,
+    lightingId: sanitizedLight.id,
+    poseId: sanitizedPose.id,
+    frameId: input.frame.id,
+    clothId: input.cloth.id,
+    selectedCabinIds: sanitizedCabins.map(x => x.id),
+    selectedAirflowIds: sanitizedAirflows.map(x => x.id),
+    selectedErgonomicIds: sanitizedTallErgonomics.map(x => x.id),
+  };
+  const gate = (group: import('./optionCompatibility').OptionGroup, items: Opt[]) =>
+    items.filter(item => {
+      const reason = optionLockReason(group, item.id, policyContext);
+      if (reason) warnings.push({
+        id: 'policy_' + group + '_' + item.id, level: 'auto-correction',
+        titleAr: 'استبعاد خيار غير متوافق', titleEn: 'Incompatible option removed',
+        descAr: reason, descEn: reason, field: group,
+      });
+      return !reason;
+    });
+  sanitizedCabins = gate('cabins', sanitizedCabins);
+  sanitizedCabinArtifacts = gate('cabinArtifacts', sanitizedCabinArtifacts);
+  sanitizedClutters = gate('clutters', sanitizedClutters);
+  sanitizedDashUis = gate('dashUis', sanitizedDashUis);
+  sanitizedAirflows = gate('airflows', sanitizedAirflows);
+  sanitizedScreenCasts = gate('screenCasts', sanitizedScreenCasts);
+  sanitizedTallErgonomics = gate('tallErgonomics', sanitizedTallErgonomics);
+  sanitizedFabrics = gate('fabrics', sanitizedFabrics);
+  sanitizedThermals = gate('thermals', sanitizedThermals);
+  sanitizedInAppArtifacts = gate('inAppArtifacts', sanitizedInAppArtifacts);
+  sanitizedMicroWeathers = gate('microWeather', sanitizedMicroWeathers);
+  sanitizedSubsurfaces = gate('subsurfaces', sanitizedSubsurfaces);
+  const safeGripMotions = gate('gripMotions', sanitizedGripMotions);
+
   const sanitized: BuildInput = {
     ...input,
     cabins: sanitizedCabins,
@@ -628,7 +693,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     microWeathers: sanitizedMicroWeathers,
     inAppArtifacts: sanitizedInAppArtifacts,
     opticals: sanitizedOpticals,
-    gripMotions: sanitizedGripMotions,
+    gripMotions: safeGripMotions,
     anatomicalExpr: sanitizedAnatomicalExpr,
     tint: sanitizedTint,
     skinNuances: sanitizedSkinNuances,

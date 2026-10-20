@@ -75,6 +75,7 @@ export interface PresetMood {
 }
 
 export interface BuildInput {
+  timeOfDay?: 'auto' | 'day' | 'sunset' | 'night';
   loc: Loc;
   carModel: Opt;
   carColor: Opt;

@@ -132,3 +132,53 @@ test('comfortable selfie reach never inherits height as arm distance', () => {
   assert.equal(sanitized.subsurfaces.some(x => x.id === 'thobe_jaw_bounce'), false);
   assert.match(sanitized.subsurfaces[0].en, /only if/);
 });
+
+test('shared scene policy drops restored cabin weather and motion outside', () => {
+  const x = fixture('outside', 'harsh_noon');
+  x.microWeathers = [option('raindrop_streak_window'), option('winter_breath_fade')];
+  x.gripMotions = [option('steering_hand_microblur'), option('natural_arm_stretch')];
+  const output = validateAndSanitizePhysics(x).sanitized;
+  assert.deepEqual(output.microWeathers, []);
+  assert.equal(output.gripMotions.some(y => y.id === 'steering_hand_microblur'), false);
+  assert.equal(output.gripMotions.some(y => y.id === 'natural_arm_stretch'), true);
+});
+
+test('prompt policy drops white-cloth reflection for black t-shirt', () => {
+  const x = fixture('inside', 'sodium_street');
+  x.subsurfaces = [option('thobe_jaw_bounce'), option('beard_follicle_shadow')];
+  const output = validateAndSanitizePhysics(x).sanitized;
+  assert.deepEqual(output.subsurfaces.map(y => y.id), ['beard_follicle_shadow']);
+});
+
+test('all locations preserve zone constraints across frames and lighting', async () => {
+  const { LOCATIONS, buildPrompt } = await import('../src/data/studioData');
+  for (const loc of LOCATIONS) {
+    for (const frame of ['close_face','half_body','wide_outside']) {
+      for (const light of ['harsh_noon','sodium_street','direct_flash']) {
+        const x = fixture(loc.zone,light);
+        x.loc = loc;
+        x.frame = option(frame);
+        x.cabins = [option('large_hand_gear'), option('tissue_box_console')];
+        x.clutters = [option('door_pocket_keys')];
+        x.microWeathers = [option('winter_breath_fade'), option('travel_dust_corner')];
+        x.fabrics = [option('seat_hip_creases'), option('collar_tilt_tension')];
+        const {sanitized} = validateAndSanitizePhysics(x);
+        const generated = buildPrompt(sanitized).en;
+        assert.ok(generated.includes('Height 193cm'));
+        assert.ok(!generated.includes('Preserve preserve'));
+        if (loc.zone === 'outside') {
+          assert.equal(sanitized.cabins.length,0);
+          assert.equal(sanitized.clutters.length,0);
+          assert.ok(!generated.includes('gear shifter'));
+        }
+        if (frame === 'close_face') {
+          assert.equal(sanitized.cabins.some(o => o.id === 'large_hand_gear'),false);
+          assert.equal(sanitized.fabrics.some(o => o.id === 'seat_hip_creases'),false);
+        }
+        if (['harsh_noon', 'noon_sun', 'golden_hour', 'afternoon_diffuse'].includes(sanitized.light.id)) {
+          assert.equal(sanitized.microWeathers.some(o => o.id === 'winter_breath_fade'),false);
+        }
+      }
+    }
+  }
+});

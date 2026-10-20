@@ -175,7 +175,7 @@ export const SKIN_NUANCES: Opt[] = [
 ];
 
 export const SUBSURFACE_PHYSICS: Opt[] = [
-  { id: "ear_cartilage_glow", ar: "توهج أحمر ياقوتي في غضروف الأذن عند نفاذ الضوء", en: "authentic red ruby subsurface scattering translucency through ear cartilage rim backlit by ambient light" },
+  { id: "ear_cartilage_glow", ar: "توهج أحمر ياقوتي في غضروف الأذن عند نفاذ الضوء", en: "subtle ear translucency only when a real light source is physically behind the ear" },
   { id: "thobe_jaw_bounce", ar: "ارتداد ضوئي ناعم من بياض قماش الثوب يضيء أسفل الذقن والفك", en: "soft diffuse white ambient bounce light reflecting off the bright cotton thobe onto the underside of the jawline and neck" },
   { id: "beard_follicle_shadow", ar: "تدرج رمادي خافت تحت الجلد في مناطق منبت شعر اللحية", en: "micro-tonal subdermal cool grey desaturation beneath the skin around exact reference beard follicle roots" },
 ];
@@ -183,7 +183,7 @@ export const SUBSURFACE_PHYSICS: Opt[] = [
 export const FABRIC_PHYSICS: Opt[] = [
   { id: "seat_hip_creases", ar: "كسرات جلوس حقيقية على جانبي الحوض لقماش الثوب (قامة 193 سم)", en: "organic horizontal tension creases and micro-folds radiating across hips and lap suited for 193cm seated posture" },
   { id: "collar_tilt_tension", ar: "انحناء خفيف للياقة القلاب المشدودة مع حركة الرقبة أو الحزام", en: "slight organic asymmetric tilt of thobe turnover collar responding naturally to neck rotation and seatbelt tension" },
-  { id: "fabric_weave_macro", ar: "ظهور خيوط نسيج التيترون أو السلك الياباني المنسوج بنعومة فائقة", en: "tactile authentic Japanese cotton-poly blend thobe fabric weave with realistic micro-thread texture" },
+  { id: "fabric_weave_macro", ar: "ظهور خيوط نسيج التيترون أو السلك الياباني المنسوج بنعومة فائقة", en: "subtle realistic thobe fabric weave visible only at camera-resolvable scale" },
 ];
 
 export const THERMAL_CLIMATE_PHYSICS: Opt[] = [
@@ -244,7 +244,7 @@ export const MICRO_WEATHER: Opt[] = [
 export const APP_UI_ELEMENTS: Opt[] = [
   { id: "snap_timestamp", ar: "ساعة السناب الكلاسيكية البيضاء مطبوعة بزاوية الشاشة", en: "Snapchat digital white timestamp overlay faintly visible in upper corner" },
   { id: "snap_temp_sticker", ar: "ملصق درجة الحرارة (مثل: 42°C أو 18°C) بالخط الأبيض", en: "subtle white weather temperature sticker overlay showing authentic local temperature reading" },
-  { id: "app_compression_filter", ar: "معالجة مستشعر سناب شات الطبيعية (ضغط ألوان الكاميرا داخل التطبيق)", en: "authentic in-app Snapchat camera sensor processing and mild social compression rendering" },
+  { id: "app_compression_filter", ar: "معالجة مستشعر سناب شات الطبيعية (ضغط ألوان الكاميرا داخل التطبيق)", en: "subtle app-level tone mapping and social-media compression, separate from sensor noise" },
 ];
 
 export const WINDOW_TINTS: Opt[] = [
@@ -254,7 +254,7 @@ export const WINDOW_TINTS: Opt[] = [
 ];
 
 export const GRIP_MOTION_NUANCES: Opt[] = [
-  { id: "natural_arm_stretch", ar: "أكتاف مائلة طبيعياً مع امتداد ذراع السيلفي الطويل (193 سم)", en: "asymmetric shoulder tilt showing physical strain of 193cm tall arm extending phone at maximum length" },
+  { id: "natural_arm_stretch", ar: "أكتاف مائلة طبيعياً مع امتداد ذراع السيلفي الطويل (193 سم)", en: "relaxed shoulder and naturally bent elbow at comfortable selfie distance, independent of body height" },
   { id: "stray_finger_corner", ar: "طرف خفيف جداً من حافة إصبع السبابة أو كفر الجوال بزاوية الكادر", en: "subtle accidental tip of index finger or matte phone case edge intruding slightly in bottom corner" },
   { id: "steering_hand_microblur", ar: "اهتزاز حركة بطيء خفيف على اليد الممسكة بالمقود", en: "slight candid micro-motion blur on the off-hand resting on steering wheel while selfie hand stays sharp" },
 ];
@@ -318,7 +318,7 @@ export const PHONES: Opt[] = [
 ];
 
 export const ANGLES: Opt[] = [
-  { id: "eye_level", ar: "مستوى العين المباشر (مثل زاوية الصورة المرجعية)", en: "direct eye-level angle matching reference photo capture angle" },
+  { id: "eye_level", ar: "مستوى العين المباشر (مثل زاوية الصورة المرجعية)", en: "natural handheld eye-level view appropriate to current scene, using reference only for identity" },
   { id: "high_45", ar: "زاوية علوية 45° سيلفي شبابي تقليدي", en: "high 45-degree selfie angle from above" },
   { id: "chest_low", ar: "منخفضة من الصدر مع ظهور سقف السيارة", en: "low angle from chest height looking slightly up" },
   { id: "candid_side", ar: "زاوية عفوية جانبية كأن الجوال باليد السفلى", en: "candid off-axis angle from relaxed hand position" },
@@ -340,7 +340,7 @@ export const CAR_COLORS: Opt[] = [
 ];
 
 export const ACCESSORIES: Opt[] = [
-  { id: "sunglasses_collar", ar: "نظارة شمسية معلقة على ياقة الثوب أو التيشيرت", en: "designer sunglasses hooked onto collar" },
+  { id: "sunglasses_collar", ar: "نظارة شمسية معلقة على ياقة الثوب أو التيشيرت", en: "sunglasses resting against the shirt or thobe collar only when unobstructed by headwear" },
   { id: "specialty_cup", ar: "كوب ورقي لمقهى مختص باليد", en: "paper takeaway cup from a specialty coffee shop in hand" },
   { id: "car_key", ar: "مفتاح السيارة معلق بيده أو على الطبلون", en: "car key fob held casually in hand or resting on console" },
   { id: "luxury_watch", ar: "ساعة يد ستيل فضية بارزة بمعصم السيلفي", en: "steel sports watch visible on selfie wrist" },
@@ -515,7 +515,8 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
         'Authentic one-handed front-camera selfie. The person dominates naturally; background appears only within the physical phone field of view. Relaxed elbow, never forced maximum reach.',
       pick(i.aspect), pick(i.frame), pick(i.phone), pick(i.angle),
       optional(ar ? 'بصريات: ' : 'Optics: ', i.opticals),
-      optional(ar ? 'إحساس الكاميرا: ' : 'Camera rendering: ', i.inAppArtifacts)
+      optional(ar ? 'إحساس الكاميرا: ' : 'Camera rendering: ', i.inAppArtifacts),
+      optional(ar ? 'ملصقات ومعالجة التطبيق: ' : 'App overlays and processing: ', i.appUis)
     ]);
     append(ar ? 'الوضعية والملابس' : 'POSTURE AND CLOTHING', [
       pick(i.pose), pick(i.cloth), accessory,
