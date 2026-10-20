@@ -305,7 +305,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
               type="text"
               value={locSearch}
               onChange={e => setLocSearch(e.target.value)}
-              placeholder="🔍 ابحث في الـ 40 موقعاً (مثل: مواقف، حي، صحراوي، درايف ثرو، محطة)..."
+              placeholder={`🔍 ابحث في ${LOCATIONS.length} موقعًا (مواقف، حي، صحراوي، مقهى، محطة)...`}
               className={`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2 text-xs text-zinc-100 placeholder-zinc-500 outline-none focus:border-emerald-500`}
             />
             {locSearch && (
@@ -329,7 +329,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              الكل (40)
+              الكل ({LOCATIONS.length})
             </button>
             <button
               type="button"
@@ -341,7 +341,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
               }`}
             >
               <span>🚗</span>
-              <span>داخل (20)</span>
+              <span>داخل ({LOCATIONS.filter(l => l.zone === 'inside').length})</span>
             </button>
             <button
               type="button"
@@ -353,7 +353,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
               }`}
             >
               <span>🚶‍♂️</span>
-              <span>خارج (20)</span>
+              <span>خارج ({LOCATIONS.filter(l => l.zone === 'outside').length})</span>
             </button>
           </div>
         </div>
@@ -468,6 +468,40 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
             </div>
           </div>
         )}
+
+        {/* High-priority vehicle realism without opening advanced options */}
+        <div className="space-y-2 pt-2 border-t border-zinc-800/70">
+          <div className="text-[11px] font-bold text-zinc-300">🕶️ تظليل الزجاج الجانبي والخلفي</div>
+          <div className="flex flex-wrap gap-1.5">
+            {WINDOW_TINTS.filter(t => ['tint_extra_dark_05', 'tint_dark_10', 'tint_medium_02', 'no_tint_clear'].includes(t.id)).map(t => (
+              <button
+                key={t.id}
+                {...lockProps('tints', t.id)}
+                type="button"
+                onClick={() => setTintId(t.id)}
+                className={`px-2 py-1.5 rounded-lg text-[11px] border ${tintId === t.id ? 'bg-sky-700 border-sky-500 text-white' : `${itemBg} border-zinc-800 text-zinc-300`}`}
+              >{t.ar}</button>
+            ))}
+          </div>
+          <p className="text-[10px] text-zinc-500">التظليل يطبق على النوافذ الجانبية والخلفية فقط، ويقلّل الضوء الداخل من تلك النوافذ؛ لا يغيّر لون الوجه خارج السيارة.</p>
+          {selectedLocation.zone === 'inside' && (
+            <>
+              <div className="text-[11px] font-bold text-zinc-300">📻 فوضى واقعية اختيارية داخل السيارة</div>
+              <div className="flex flex-wrap gap-1.5">
+                {DAILY_LIFE_CLUTTER.filter(item => ['rugged_military_radio','folded_parking_receipts','cabin_tissue_pack','loose_charging_cable','folded_paper_map'].includes(item.id)).map(item => (
+                  <button
+                    key={item.id}
+                    {...lockProps('clutters', item.id)}
+                    type="button"
+                    onClick={() => toggle(item.id, clutterIds, setClutterIds)}
+                    className={`px-2 py-1.5 rounded-lg text-[11px] border ${clutterIds.includes(item.id) ? 'bg-indigo-700 border-indigo-500 text-white' : `${itemBg} border-zinc-800 text-zinc-300`}`}
+                  >{item.ar}</button>
+                ))}
+              </div>
+              <p className="text-[10px] text-zinc-500">يستخدم المحرك عنصرين ثانويين كحد أقصى، ويستبعد أي مقتنيات خارج الكادر القريب.</p>
+            </>
+          )}
+        </div>
       </section>
 
       {/* ============================================================== */}
