@@ -91,6 +91,13 @@ export function validateAndSanitizePhysics(input: BuildInput): {
 
   if (isOutside) {
     activeRules.push('عزل تفاصيل المقصورة الداخلية تلقائياً (اللقطة خارج السيارة)');
+    // A standing exterior subject must never inherit interior dashboard items.
+    sanitizedCabins = [];
+    sanitizedDashUis = [];
+    sanitizedCabinArtifacts = [];
+    sanitizedClutters = [];
+    sanitizedScreenCasts = [];
+    sanitizedAirflows = [];
     
     // Check if cabin details were selected while outside
     const hasCabinDetails =
@@ -120,13 +127,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
 
     // AC Airflow outside check
     if (input.airflows.some(a => a.id === 'ac_gentle_breeze')) {
-      sanitizedAirflows = [
-        {
-          id: 'outdoor_ambient_breeze',
-          ar: 'نسيم هواء خارجي طبيعي يداعب أطراف الخصلات والملابس بعفوية',
-          en: 'gentle outdoor ambient breeze softly moving hair strands and shirt fabric naturally',
-        },
-      ];
+      sanitizedAirflows = [];
       warnings.push({
         id: 'exterior_ac_breeze',
         level: 'auto-correction',
@@ -248,7 +249,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
 
   // Screen cast light outside vehicle
   if (isOutside && input.screenCasts.some(s => s.id === 'carplay_dark_glow')) {
-    sanitizedScreenCasts = input.screenCasts.filter(s => s.id !== 'carplay_dark_glow');
+    sanitizedScreenCasts = [];
     warnings.push({
       id: 'exterior_carplay_cast',
       level: 'auto-correction',
