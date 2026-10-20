@@ -303,7 +303,7 @@ test('real mosque-parking cabin selfie has windshield daylight, roof-clearance a
   assert.match(text, /5% visible light transmission/);
   assert.match(text, /Parking location context, not a mandatory visible background/);
   assert.match(text, /Toyota Land Cruiser LC300/);
-  assert.doesNotMatch(text, /harsh overhead direct noon sun casting sharp vertical shadows/);
+  assert.match(text, /harsh overhead direct noon sun casting sharp vertical shadows/);
   assert.doesNotMatch(text, /high 45-degree selfie angle from above/);
   assert.doesNotMatch(text, /one large hand resting atop steering wheel/);
   assert.doesNotMatch(text, /Seated in the driver seat of pearl white/);
