@@ -1,7 +1,7 @@
 import type { Zone } from '../types/studio';
 
 export type SceneTime = 'auto' | 'day' | 'sunset' | 'night';
-export type OptionGroup = 'cabins' | 'cabinArtifacts' | 'clutters' | 'dashUis' | 'airflows' | 'screenCasts' | 'tallErgonomics' | 'poses' | 'lighting' | 'inAppArtifacts' | 'heightCue' | 'fabrics' | 'thermals' | 'microWeather' | 'subsurfaces' | 'opticals' | 'gripMotions' | 'accessories';
+export type OptionGroup = 'cabins' | 'cabinArtifacts' | 'clutters' | 'dashUis' | 'airflows' | 'screenCasts' | 'tallErgonomics' | 'poses' | 'lighting' | 'inAppArtifacts' | 'heightCue' | 'fabrics' | 'thermals' | 'microWeather' | 'subsurfaces' | 'opticals' | 'gripMotions' | 'accessories' | 'tints';
 
 export interface OptionContext {
   zone: Zone;
@@ -24,6 +24,14 @@ const garmentHasCollar = (id: string) => ['thobe', 'shirt', 'linen', 'collar'].s
 
 /** A single policy shared by visible options and prompt boundary checks. Null = selectable. */
 export function optionLockReason(group: OptionGroup, id: string, context: OptionContext): string | null {
+  // Glass tint is a property of the vehicle, not a global scene-darkening filter.
+  if (group === 'tints' && context.zone === 'outside' && context.frameId === 'close_face' && id !== 'no_tint_clear')
+    return 'زجاج السيارة خارج كادر الوجه القريب؛ يظل التظليل محفوظًا للقطات الأوسع';
+  // Below-dashboard clutter and passenger-seat objects cannot be compelled into an intimate selfie.
+  if (context.frameId === 'close_face' && group === 'clutters')
+    return 'الفوضى على المقعد والكونسول وجيوب الأبواب خارج مجال السيلفي القريب';
+  if (context.frameId === 'close_face' && group === 'cabinArtifacts')
+    return 'مقتنيات المقصورة ليست ظاهرة بالضرورة في الكادر القريب';
   if (context.zone === 'outside') {
     if (group === 'microWeather' && ['raindrop_streak_window','travel_dust_corner'].includes(id)) return 'تفاصيل زجاج المقصورة غير متاحة خارج السيارة';
     if (group === 'gripMotions' && id === 'steering_hand_microblur') return 'المقود غير متاح خارج السيارة';
