@@ -267,3 +267,143 @@ test('new locations select compatible light for explicit daypart', async () => {
     }
   }
 });
+
+
+test('real mosque-parking cabin selfie has windshield daylight, roof-clearance angle and visible-only wheel', async () => {
+  const {
+    LOCATIONS, LIGHTING_OPTIONS, WINDOW_TINTS, CLOTHES, CAR_COLORS,
+    CAR_MODELS, ANGLES, POSES, FRAMINGS, HAIR_STYLES, BEARD_STYLES,
+    ACCESSORIES, ANATOMICAL_EXPRESSIONS, buildPrompt
+  } = await import('../src/data/studioData');
+  const selected = <T extends { id: string }>(list: T[], id: string): T => {
+    const found = list.find(item => item.id === id);
+    assert.ok(found, id);
+    return found;
+  };
+  const scene = fixture('inside', 'harsh_noon');
+  scene.loc = LOCATIONS.find(loc => loc.id === 13)!;
+  scene.light = selected(LIGHTING_OPTIONS, 'harsh_noon');
+  scene.tint = selected(WINDOW_TINTS, 'tint_extra_dark_05');
+  scene.cloth = selected(CLOTHES, 'thobe_white');
+  scene.carModel = selected(CAR_MODELS, 'landcruiser_lc300');
+  scene.carColor = selected(CAR_COLORS, 'white');
+  scene.angle = selected(ANGLES, 'high_45');
+  scene.pose = selected(POSES, 'hand_on_wheel');
+  scene.frame = selected(FRAMINGS, 'close_face');
+  scene.hair = selected(HAIR_STYLES, 'ref_forward_casual_crop');
+  scene.beard = selected(BEARD_STYLES, 'ref_rugged_unlined');
+  scene.accessory = selected(ACCESSORIES, 'sunglasses_collar');
+  scene.anatomicalExpr = selected(ANATOMICAL_EXPRESSIONS, 'relaxed_jaw_unclenched');
+  const { report, sanitized } = validateAndSanitizePhysics(scene);
+  const text = buildPrompt(sanitized).en;
+  assert.match(text, /opaque vehicle roof blocks direct overhead rays/);
+  assert.match(text, /clear windshield/);
+  assert.match(text, /real clearance between the seated head and roof liner/);
+  assert.match(text, /possibly outside the crop/);
+  assert.match(text, /5% visible light transmission/);
+  assert.match(text, /Parking location context, not a mandatory visible background/);
+  assert.match(text, /Toyota Land Cruiser LC300/);
+  assert.doesNotMatch(text, /harsh overhead direct noon sun casting sharp vertical shadows/);
+  assert.doesNotMatch(text, /high 45-degree selfie angle from above/);
+  assert.doesNotMatch(text, /one large hand resting atop steering wheel/);
+  assert.doesNotMatch(text, /Seated in the driver seat of pearl white/);
+  assert.doesNotMatch(text, /natural black color|hair follicle density|masseter|unclenched teeth/i);
+  assert.doesNotMatch(text, /only when unobstructed by headwear/i);
+  assert.match(report.lightingProfile.shadowBehavior, /roof shade/);
+  assert.ok(report.warnings.some(x => x.id === 'roof_sun_path_corrected'));
+  assert.ok(report.warnings.some(x => x.id === 'camera_roof_clearance_corrected'));
+});
+
+test('time switch reconciles night light and squint from effective source', async () => {
+  const { LOCATIONS, LIGHTING_OPTIONS, ANATOMICAL_EXPRESSIONS, buildPrompt } = await import('../src/data/studioData');
+  const scene = fixture('inside', 'harsh_noon');
+  scene.loc = LOCATIONS.find(x => x.id === 13)!;
+  scene.light = LIGHTING_OPTIONS.find(x => x.id === 'harsh_noon')!;
+  scene.anatomicalExpr = ANATOMICAL_EXPRESSIONS.find(x => x.id === 'sun_squint_lines')!;
+  scene.timeOfDay = 'night';
+  const { report, sanitized } = validateAndSanitizePhysics(scene);
+  assert.notEqual(sanitized.light.id, 'harsh_noon');
+  assert.doesNotMatch(buildPrompt(sanitized).en, /Bright midday daylight|sun glare|midday sun|warm amber-brown/i);
+  assert.match(sanitized.anatomicalExpr.en, /without assumed sunlight/);
+  assert.notEqual(report.lightingProfile.category, 'daylight');
+  assert.doesNotMatch(report.lightingProfile.ambientKelvin, /Midday Sun/);
+});
+
+test('outside sun and selfie are not given interior roof restrictions', async () => {
+  const { LOCATIONS, ANGLES, LIGHTING_OPTIONS, buildPrompt } = await import('../src/data/studioData');
+  const scene = fixture('outside', 'harsh_noon');
+  scene.loc = LOCATIONS.find(x => x.id === 27)!;
+  scene.light = LIGHTING_OPTIONS.find(x => x.id === 'harsh_noon')!;
+  scene.angle = ANGLES.find(x => x.id === 'high_45')!;
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  const prompt = buildPrompt(sanitized).en;
+  assert.doesNotMatch(prompt, /opaque vehicle roof blocks|roof liner/);
+  assert.match(prompt, /harsh overhead direct noon sun/);
+  assert.match(prompt, /high handheld selfie angle/);
+});
+
+test('headwear never appears with no-headwear thobe when hair option conflicts', async () => {
+  const { CLOTHES, HAIR_STYLES, buildPrompt } = await import('../src/data/studioData');
+  const scene = fixture('inside', 'sodium_street');
+  scene.cloth = CLOTHES.find(x => x.id === 'thobe_white')!;
+  scene.hair = HAIR_STYLES.find(x => x.id === 'covered_traditional')!;
+  const { sanitized, report } = validateAndSanitizePhysics(scene);
+  assert.doesNotMatch(buildPrompt(sanitized).en, /wearing traditional Saudi headwear/);
+  assert.match(sanitized.hair.en, /no headwear unless/);
+  assert.ok(report.warnings.some(x => x.id === 'headwear_outfit_resolved'));
+});
+
+test('a wheel hand cannot also hold a cup or keys in tight frame', async () => {
+  const { POSES, FRAMINGS, ACCESSORIES, buildPrompt } = await import('../src/data/studioData');
+  const scene = fixture('inside', 'sodium_street');
+  scene.pose = POSES.find(x => x.id === 'hand_on_wheel')!;
+  scene.frame = FRAMINGS.find(x => x.id === 'close_face')!;
+  for (const id of ['specialty_cup', 'car_key']) {
+    scene.accessory = ACCESSORIES.find(x => x.id === id)!;
+    const prompt = buildPrompt(validateAndSanitizePhysics(scene).sanitized).en;
+    assert.doesNotMatch(prompt, /paper takeaway cup|car key fob held/);
+  }
+});
+
+test('roof and tinted window invariants over 60 locations x 3 frames x 4 lighting variants', async () => {
+  const { LOCATIONS, FRAMINGS, LIGHTING_OPTIONS, WINDOW_TINTS, buildPrompt } = await import('../src/data/studioData');
+  for (const loc of LOCATIONS) {
+    for (const frame of FRAMINGS) {
+      for (const id of ['harsh_noon','soft_morning','sodium_street','direct_flash']) {
+        const input = fixture(loc.zone,id);
+        input.loc = loc;
+        input.frame = frame;
+        input.light = LIGHTING_OPTIONS.find(x => x.id === id)!;
+        input.tint = WINDOW_TINTS.find(x => x.id === 'tint_extra_dark_05')!;
+        const output = validateAndSanitizePhysics(input).sanitized;
+        const prompt = buildPrompt(output).en;
+        assert.ok(prompt.includes('Height 193cm'));
+        assert.doesNotMatch(prompt, /(?:195|194)cm frame/);
+        if (loc.zone === 'inside' && id === 'harsh_noon' && loc.id !== 10) {
+          assert.doesNotMatch(prompt, /harsh overhead direct noon sun casting sharp vertical shadows/);
+        }
+        if (loc.zone === 'outside') assert.doesNotMatch(prompt, /window tint affects cabin face illumination/i);
+      }
+    }
+  }
+});
+
+
+test('five-percent window tint reduces nighttime exterior light but not front-facing capture fill', async () => {
+  const { LIGHTING_OPTIONS, WINDOW_TINTS, ACCESSORIES, buildPrompt } = await import('../src/data/studioData');
+  const inside = fixture('inside', 'sodium_street');
+  inside.loc.id = 13;
+  inside.light = LIGHTING_OPTIONS.find(x => x.id === 'sodium_street')!;
+  inside.tint = WINDOW_TINTS.find(x => x.id === 'tint_extra_dark_05')!;
+  inside.accessory = ACCESSORIES.find(x => x.id === 'none')!;
+  const scene = validateAndSanitizePhysics(inside).sanitized;
+  assert.match(scene.light.en, /strongly attenuated/);
+  assert.match(scene.light.en, /deep cabin shadows/);
+  assert.doesNotMatch(buildPrompt(scene).en, /Sunglasses|sunglasses|third hand/i);
+  const lighter = fixture('inside', 'direct_flash');
+  lighter.loc.id = 13;
+  lighter.light = LIGHTING_OPTIONS.find(x => x.id === 'direct_flash')!;
+  lighter.tint = inside.tint;
+  const output = validateAndSanitizePhysics(lighter).sanitized;
+  assert.doesNotMatch(output.light.en, /strongly attenuated through dark side/);
+});

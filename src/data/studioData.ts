@@ -102,7 +102,7 @@ export const HAIR_STYLES: Opt[] = [
   {
     id: "ref_signature_tousled",
     ar: "تسريحة المرجع الأصلية (نفس الكثافة الطبيعية، تصفيف جانبي خفيف بأطراف الأصابع)",
-    en: "exact hair styling from reference photo: maintaining exact same medium-full density, natural dark textured strands gently swept to the side and up with natural volume, preserving exact mature temple hairline"
+    en: "hair silhouette and hairline anchored to the reference; relaxed natural side styling only within its visible length, density and color"
   },
   {
     id: "ref_brush_back_natural",
@@ -117,12 +117,12 @@ export const HAIR_STYLES: Opt[] = [
   {
     id: "ref_forward_casual_crop",
     ar: "خصلات مبعثرة للأمام بعفوية فوق الجبين (نفس الكثافة والسمك)",
-    en: "casual forward textured fringe with natural relaxed strands gently touching upper forehead, exact same hair density, texture, and natural black color as the reference image"
+    en: "casual forward textured fringe with relaxed strands at the upper forehead, retaining the reference hairline, natural density, texture and visible color"
   },
   {
     id: "ref_windblown_postgym",
     ar: "حركة عفوية متأثرة بهواء التكييف (نفس الكثافة الأصلية وخصلات حرة)",
-    en: "slightly windblown relaxed casual hair with organic separation from AC airflow, strictly maintaining exact same hair volume, natural dark color, and density as reference"
+    en: "slightly wind-moved hair only where plausible air reaches it, preserving reference density, growth direction and visible color"
   },
   {
     id: "covered_traditional",
@@ -135,7 +135,7 @@ export const BEARD_STYLES: Opt[] = [
   {
     id: "ref_signature_beard",
     ar: "لحية الصورة المرجعية الأصلية (نفس الكثافة، الطول، والشارب المتصل والخط الطبيعي)",
-    en: "exact signature beard and mustache from reference photo: identical groomed medium-stubble density, natural cheek line, organic chin contour, identical mustache thickness and soft neck taper"
+    en: "preserve beard and moustache as visible in the reference: same density, uneven growth boundaries, visible length and neck outline without forced grooming"
   },
   {
     id: "ref_fresh_trimmed_neat",
@@ -145,7 +145,7 @@ export const BEARD_STYLES: Opt[] = [
   {
     id: "ref_rugged_unlined",
     ar: "نفس لحية المرجع بنمط كاجوال عفوي (شعيرات متناثرة ناعمة عند الرقبة)",
-    en: "reference beard left in its organic natural state with soft un-lasered edges along lower neck, keeping the exact same hair follicle density and dark tone as reference photo"
+    en: "reference beard left in its natural state with the same visibly supported cheek and neck edges, growth gaps, density and color; no invented individual follicles"
   }
 ];
 
@@ -153,7 +153,7 @@ export const ANATOMICAL_EXPRESSIONS: Opt[] = [
   { 
     id: "ref_warm_smile", 
     ar: "نفس ابتسامة المرجع الدافئة العفوية (إشراقة عيون هادئة وشفاه متلامسة برقة)", 
-    en: "exact warm candid smile from reference photo: soft relaxed lip corners, genuine warm amber-brown eye gaze, natural crow's feet creases" 
+    en: "a relaxed small candid smile only through natural lip-corner movement; eye color and skin creases remain as visible in the reference" 
   },
   { 
     id: "sun_squint_lines", 
@@ -163,7 +163,7 @@ export const ANATOMICAL_EXPRESSIONS: Opt[] = [
   { 
     id: "relaxed_jaw_unclenched", 
     ar: "فك مسترخٍ طبيعي غير مشدود والشفتان متلامستان بعفوية تامة", 
-    en: "fully relaxed masseter jawline, completely unclenched teeth, lips touching naturally without forced pout" 
+    en: "relaxed natural jaw and mouth, with lips resting comfortably together and no forced expression" 
   },
   { 
     id: "asymmetric_micro_smirk", 
@@ -173,7 +173,7 @@ export const ANATOMICAL_EXPRESSIONS: Opt[] = [
   { 
     id: "raised_eyebrow_candid", 
     ar: "حاجب واحد مرفوع بمليمترات بتعبير تساؤلي عفوي وشبابي", 
-    en: "one eyebrow subtly raised by a couple millimeters, casual inquiring candid gaze, subtle forehead tension lines" 
+    en: "a casually questioning gaze with slightly raised eyebrow and natural skin movement, without added permanent lines" 
   },
   { 
     id: "road_focused_glance", 
@@ -283,7 +283,7 @@ export const WINDOW_TINTS: Opt[] = [
 
   { id: "tint_medium_02", ar: "تظليل كتم وسط (درجة 02) مع دخول الضوء من الزجاج الأمامي", en: "medium 35% charcoal window tint on side glasses, creating moody contrast with un-tinted windshield light" },
   { id: "tint_light_01", ar: "تظليل حراري نانوي خفيف (درجة 01) بمسحة زرقاء خافتة", en: "light 50% legal nano-ceramic tint giving subtle cool blue-green hue to interior shadows" },
-  { id: "no_tint_clear", ar: "زجاج شفاف وكالة بدون تظليل (إضاءة كاملة للمقصورة)", en: "clear factory untinted windows with complete ambient daylight illuminating whole cabin" },
+  { id: "no_tint_clear", ar: "زجاج شفاف وكالة بدون تظليل (إضاءة كاملة للمقصورة)", en: "clear factory windows allowing transmission of whatever real daylight or nearby practical lighting actually exists" },
 ];
 
 export const GRIP_MOTION_NUANCES: Opt[] = [
@@ -324,14 +324,14 @@ export const CLOTHES: Cloth[] = [
 export const STORYLINES: Opt[] = [
   { id: "traffic_light_stop", ar: "واقف عند إشارة حمراء وزهقان (ابتسامة المرجع الهادئة)", en: "waiting casually at a red traffic light, slight idle boredom, authentic subtle gentle smile matching reference expression" },
   { id: "fresh_haircut", ar: "ثوب مغسول جديد ومظهر مهندم بنفس شعر ولحية المرجع", en: "crisp clean tailored thobe, sharp clean collar, confident relaxed candid vibe, identical reference hair and facial features" },
-  { id: "family_waiting_idle", ar: "منتظر مشوار بالسيارة والمكيف شغال والمقعد مائل للخلف", en: "waiting parked inside idling car with AC on, driver seat reclined comfortably for 195cm frame" },
+  { id: "family_waiting_idle", ar: "منتظر مشوار بالسيارة والمكيف شغال والمقعد مائل للخلف", en: "waiting parked inside an idling car with AC on, driver seat adjusted comfortably for the specified 193cm height" },
   { id: "late_night_cruising", ar: "سرية خط ليلية ومسكة طريق مفتوح مع فنجان شاي سفري", en: "late night highway cruising, quiet roads, dashboard ambient glow, cup of warm tea on console" },
   { id: "post_gym_parking", ar: "توه مخلص تمرين في مواقف النادي بعد المغرب", en: "sitting in parking lot right after gym workout, gym outfit, post-training calm fatigue" },
   { id: "friday_after_prayer", ar: "موقف هادئ بعد صلاة الجمعة وثوب ناصع", en: "right after Friday midday prayer, pristine traditional attire, serene atmosphere" },
 ];
 
 export const FRAMINGS: Opt[] = [
-  { id: "close_face", ar: "سيلفي شخصي قريب جداً (الوجه والصدر يملآن 80% من الكادر)", en: "intimate front-camera selfie framing where subject's face, neck, and broad chest dominate 80% of frame, background visible only around edges" },
+  { id: "close_face", ar: "سيلفي شخصي قريب جداً (الوجه والصدر يملآن 80% من الكادر)", en: "intimate front-camera selfie: face, neck and upper chest fill most of the frame; only the physically visible cabin edges appear" },
   { id: "half_body", ar: "سيلفي نصفي طبيعي (الرأس والأكتاف بالمركز، والسيارة كخلفية ثانوية)", en: "classic handheld selfie showing head, neck, and upper torso as central subject; car interior/exterior strictly secondary background" },
   { id: "wide_outside", ar: "سيلفي ممتد بذراع كامل (الشخص في الصدارة والخلفية تبعاً للزاوية)", en: "arm-extended handheld selfie keeping tall subject in prominent foreground, surroundings captured organically behind without recentering" },
 ];
@@ -345,14 +345,14 @@ export const ASPECTS: Opt[] = [
 
 export const PHONES: Opt[] = [
   { id: "iphone_16_pro", ar: "iPhone 16 Pro Max (ألوان طبيعية وHDR متوازن)", en: "iPhone 16 Pro Max front camera, natural smart HDR" },
-  { id: "snapchat_cam", ar: "كاميرا سناب شات مباشرة (معالجة التطبيق العادية)", en: "raw Snapchat in-app camera capture with authentic compression" },
+  { id: "snapchat_cam", ar: "كاميرا سناب شات مباشرة (معالجة التطبيق العادية)", en: "raw front-camera capture inside Snapchat, with moderate in-app processing and realistic compression" },
   { id: "xiaomi_15_ultra", ar: "Xiaomi 15 Ultra (نغمات لايكا الطبيعية)", en: "Xiaomi 15 Ultra front cam, Leica authentic tone" },
   { id: "samsung_s24u", ar: "Samsung S24 Ultra (حدة تفاصيل عالية)", en: "Samsung S24 Ultra front camera" },
 ];
 
 export const ANGLES: Opt[] = [
   { id: "eye_level", ar: "مستوى العين المباشر (مثل زاوية الصورة المرجعية)", en: "natural handheld eye-level view appropriate to current scene, using reference only for identity" },
-  { id: "high_45", ar: "زاوية علوية 45° سيلفي شبابي تقليدي", en: "high 45-degree selfie angle from above" },
+  { id: "high_45", ar: "زاوية علوية 45° سيلفي شبابي تقليدي", en: "high handheld selfie angle when real arm reach and overhead clearance permit" },
   { id: "chest_low", ar: "منخفضة من الصدر مع ظهور سقف السيارة", en: "low angle from chest height looking slightly up" },
   { id: "candid_side", ar: "زاوية عفوية جانبية كأن الجوال باليد السفلى", en: "candid off-axis angle from relaxed hand position" },
 ];
@@ -373,14 +373,15 @@ export const CAR_COLORS: Opt[] = [
 ];
 
 export const ACCESSORIES: Opt[] = [
-  { id: "sunglasses_collar", ar: "نظارة شمسية معلقة على ياقة الثوب أو التيشيرت", en: "sunglasses resting against the shirt or thobe collar only when unobstructed by headwear" },
+  { id: "none", ar: "بدون إكسسوارات", en: "" },
+  { id: "sunglasses_collar", ar: "نظارة شمسية معلقة على ياقة الثوب أو التيشيرت", en: "sunglasses hanging naturally from a visible shirt neckline or thobe collar" },
   { id: "specialty_cup", ar: "كوب ورقي لمقهى مختص باليد", en: "paper takeaway cup from a specialty coffee shop in hand" },
   { id: "car_key", ar: "مفتاح السيارة معلق بيده أو على الطبلون", en: "car key fob held casually in hand or resting on console" },
   { id: "luxury_watch", ar: "ساعة يد ستيل فضية بارزة بمعصم السيلفي", en: "steel sports watch visible on selfie wrist" },
 ];
 
 export const POSES: Opt[] = [
-  { id: "hand_on_wheel", ar: "يد على المقود والأخرى تلتقط السيلفي", en: "one large hand resting atop steering wheel, other snapping selfie" },
+  { id: "hand_on_wheel", ar: "يد على المقود والأخرى تلتقط السيلفي", en: "one hand holding the selfie phone, free hand comfortably resting on the steering wheel if permitted by framing" },
   { id: "arm_out", ar: "سيلفي يد واحدة ممدودة للأمام بعفوية (ذراع طويل)", en: "one long arm extended forward holding phone naturally, wide candid view" },
   { id: "adjust_collar", ar: "يد تعدل ياقة الثوب بعفوية والأخرى تصور", en: "one hand casually adjusting collar fold, other snapping candid selfie" },
   { id: "involuntary_snap", ar: "لقطة خاطفة عفوية أثناء الالتفات لنافذة السيارة", en: "involuntary mid-motion candid snap turning toward car window, authentic unposed feel" },
@@ -505,16 +506,12 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
   // The caller supplies a physics-sanitized scene. No additional invented details.
   const inside = i.loc.zone === 'inside';
   const close = i.frame.id === 'close_face';
-  const isThobe = i.cloth.id.includes('thobe');
-  const extras = (a: Opt[], language: 'ar' | 'en') =>
+    const extras = (a: Opt[], language: 'ar' | 'en') =>
     [...new Set(a.map(x => x[language].trim()).filter(x =>
       x && !/^(none|natural|n\/a|لا يوجد|طبيعي)$/i.test(x)
     ))].join(language === 'ar' ? '، ' : '; ');
   const normalized = (value: string) => value
-    .replace(/\b(?:193|194|195)\s*cm\b/gi, SUBJECT_HEIGHT_CM + 'cm')
-    .replace(/\b(?:83|88)\s*kg\b/gi, SUBJECT_WEIGHT_KG + 'kg')
     .replace(/\b(?:Preserve\s+){2,}/gi, 'Preserve ')
-    .replace(/\b(?:STRICT|MANDATORY|ABSOLUTE)\b:?/gi, '')
     .replace(/\s+\./g, '.').replace(/\n{3,}/g, '\n\n').trim();
   const build = (lang: 'ar' | 'en') => {
     const ar = lang === 'ar';
@@ -528,8 +525,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
       const v = extras(arr, lang);
       return v ? name + v : undefined;
     };
-    const accessory = i.accessory.id === 'sunglasses_collar' && i.cloth.id === 'thobe_shmagh'
-      ? undefined : pick(i.accessory);
+    const accessory = ['none', 'natural', 'no_accessory'].includes(i.accessory.id) ? undefined : pick(i.accessory);
     const beard = i.beard.id === 'ref_fresh_trimmed_neat'
       ? (ar ? 'احتفظ بلحية الصورة المرجعية وحدودها الطبيعية دون تشذيب أو إعادة رسم' : 'Preserve the beard, natural cheekline, neckline, mustache and growth gaps as actually visible; no added grooming')
       : pick(i.beard);
@@ -557,9 +553,15 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
       optional(ar ? 'الحركة: ' : 'Motion: ', i.gripMotions.filter(x => x.id !== 'natural_arm_stretch'))
     ]);
     append(ar ? 'المكان والضوء الفيزيائي' : 'SCENE AND PHYSICAL LIGHTING', [
-      pick(i.loc),
-      inside ? (ar ? `داخل مقعد سائق ${pick(i.carModel)} بلون ${pick(i.carColor)}.` : `Seated in the driver seat of ${pick(i.carColor)} ${pick(i.carModel)}.`) :
-        (ar ? `واقف خارج ${pick(i.carModel)} بلون ${pick(i.carColor)}.` : `Standing outside beside a ${pick(i.carColor)} ${pick(i.carModel)}.`),
+      inside
+        ? (ar ? `موقع توقف السيارة (سياق فقط، لا تُفرض تفاصيل خارج النوافذ): ${pick(i.loc)}.`
+              : `Parking location context, not a mandatory visible background: ${pick(i.loc)}.`)
+        : pick(i.loc),
+      inside
+        ? (ar ? `جالس على مقعد سائق ${pick(i.carModel)}، ولا يُفرض لون الهيكل الخارجي في صورة من داخل المقصورة.`
+              : `Seated in the driver seat of a ${pick(i.carModel)}; exterior body paint need not be visible in this interior selfie.`)
+        : (ar ? `واقف خارج ${pick(i.carModel)} بلون ${pick(i.carColor)}.`
+              : `Standing outside beside a ${pick(i.carColor)} ${pick(i.carModel)}.`),
       pick(i.light),
       i.tint.en.trim() ? pick(i.tint) : undefined,
       ar ? 'كل ظل وانعكاس ولمعة عين مرتبط بمصدر موجود واتجاه وشدة منطقية؛ لا إضاءة تعبئة أو ارتداد أبيض بلا مصدر، والثوب يعكس الضوء فقط.' :

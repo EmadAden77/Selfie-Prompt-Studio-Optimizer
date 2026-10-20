@@ -282,7 +282,7 @@ export default function App() {
       beard, hair, heightCue, storyline, tint,
       opticals, cabins, skinNuances, appUis, gripMotions, dashUis,
       subsurfaces, fabrics, thermals, clutters,
-      airflows, screenCasts, cabinArtifacts, tallErgonomics, inAppArtifacts, microWeathers
+      airflows, screenCasts, cabinArtifacts, tallErgonomics, inAppArtifacts, microWeathers, timeOfDay
     ]
   );
 
