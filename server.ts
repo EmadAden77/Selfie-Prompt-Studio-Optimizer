@@ -79,7 +79,11 @@ const ai = apiKey ? createGeminiClient(apiKey) : null;
 const configuredCorsOrigin = readText(process.env.CORS_ORIGIN || process.env.APP_URL, 500).replace(/\/$/, '');
 
 app.disable('x-powered-by');
-app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS) || 1);
+const configuredProxyHops = Number(process.env.TRUST_PROXY_HOPS);
+const trustProxyHops = Number.isInteger(configuredProxyHops) && configuredProxyHops >= 0
+  ? configuredProxyHops
+  : 1;
+app.set('trust proxy', trustProxyHops);
 app.use(express.json({ limit: '32kb' }));
 
 app.use('/api', (req, res, next) => {
