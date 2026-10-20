@@ -251,6 +251,8 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
     time: timeOfDay,
     lightingId: lightId,
     poseId,
+    frameId,
+    selectedCabinIds: cabinIds,
     clothId,
     selectedAirflowIds: airflowIds,
     selectedErgonomicIds: tallErgonomicIds,
