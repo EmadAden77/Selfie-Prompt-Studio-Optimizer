@@ -451,4 +451,4 @@ test('contextual optics preserves the selected daylight character while adding c
   assert.match(resolved.light.en, /crisp early morning soft natural daylight/);
   assert.match(resolved.light.en, /preserving this selected source's color, softness and direction/);
 });
-\n
+
