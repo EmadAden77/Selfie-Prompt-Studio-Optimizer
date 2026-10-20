@@ -1,6 +1,6 @@
 import { Loc, Opt, Cloth, PresetMood, BuildInput, SUBJECT_HEIGHT_CM, SUBJECT_WEIGHT_KG } from '../types/studio';
 
-/* =================== 40 مكاناً سعودياً عفوياً (بدون معالم وبدون ربط بالإضاءة) =================== */
+/* =================== 60 مكاناً سعودياً عفوياً (بدون معالم وبدون ربط بالإضاءة) =================== */
 export const LOCATIONS: Loc[] = [
   // 🚗 داخل مقصورة السيارة (20 مكاناً)
   { id: 1, zone: "inside", ar: "مواقف سكنية مظللة بشنابر خرسانية ومظلات قماشية", en: "shaded residential carport with concrete pillars and standard cloth canopy" },
@@ -45,6 +45,30 @@ export const LOCATIONS: Loc[] = [
   { id: 38, zone: "outside", ar: "بجانب السيارة على شاطئ بحري هادئ بأرضية رملية مبللة وصلبة", en: "beside car parked on hard-packed coastal sand shoreline flat" },
   { id: 39, zone: "outside", ar: "بجانب السيارة في شارع مستودعات هادئ بهياكل حديدية وبوابات منزلقة", en: "beside car on a wide quiet logistics warehouse service street" },
   { id: 40, zone: "outside", ar: "بجانب السيارة على رصيف عريض مفروش ببلاط إنترلوك أمام سور مدرسة حي", en: "beside car on a wide interlocking paved sidewalk along a neighborhood school wall" },
+
+  // More ordinary, physically grounded Saudi locations: photographed from inside the vehicle
+  { id: 41, zone: "inside", ar: "السيارة متوقفة في مواقف زوار عمارة سكنية بجانب أعمدة خرسانية وأبواب مداخل", en: "parked in an apartment visitor bay beside plain concrete pillars and a small entrance lobby" },
+  { id: 42, zone: "inside", ar: "داخل سيارة متوقفة بجانب مستودعات توزيع محلية بواجهات صاج وبوابات تحميل مغلقة", en: "parked along a quiet local distribution warehouse frontage with corrugated shutters and closed loading doors" },
+  { id: 43, zone: "inside", ar: "سيارة متوقفة أمام صيدلية حي عادية على شارع فرعي مع رصيف قصير", en: "parked on a side-street bay outside an ordinary neighborhood pharmacy with a short concrete sidewalk" },
+  { id: 44, zone: "inside", ar: "مواقف بقالة كبيرة أو سوبرماركت حي مع عربات تسوق قليلة قرب المدخل", en: "parked in a modest neighborhood supermarket lot with a few shopping carts near the entrance" },
+  { id: 45, zone: "inside", ar: "موقف زوار لعيادات طبية صغيرة مع مسار دخول واضح دون عرقلة المرور", en: "parked in a marked visitor space outside a small clinic, away from the entrance driveway" },
+  { id: 46, zone: "inside", ar: "داخل سيارة في طابق مواقف متعدد الطوابق مفتوح الجوانب بأعمدة وخطوط مواقف", en: "inside a parked car on an open-sided multistorey parking level with painted bays and concrete columns" },
+  { id: 47, zone: "inside", ar: "السيارة متوقفة في استراحة طريق صغيرة بجوار كافتيريا بسيطة وطاولات متفرقة", en: "parked in a small roadside rest stop beside a plain snack kiosk and a few outdoor tables" },
+  { id: 48, zone: "inside", ar: "موقف سيارات بجانب مبنى محلات خدمات حي أمام مغسلة ملابس ومخبز", en: "parked in a neighborhood service-shop lot beside an ordinary laundry and bakery storefront" },
+  { id: 49, zone: "inside", ar: "سيارة متوقفة تحت سقيفة معدنية قرب ورشة إطارات ومحل قطع غيار", en: "parked beneath a simple metal shade outside a neighborhood tire and spare-parts shop" },
+  { id: 50, zone: "inside", ar: "سيارة متوقفة على جانب طريق ساحلي مع حاجز خرساني ومواقف محددة", en: "parked in a marked paved pull-off along a coastal road with a low concrete barrier" },
+
+  // Additional locations where the subject stands beside a safely parked car
+  { id: 51, zone: "outside", ar: "بجانب سيارة متوقفة في ساحة انتظار مغسلة سيارات يدوية والأرضية مبللة موضعيًا", en: "standing next to a parked car in a hand-car-wash waiting bay with locally wet concrete pavement" },
+  { id: 52, zone: "outside", ar: "بجانب السيارة في موقف حي صغير قرب عامود إنارة وأشجار مزروعة حديثًا", en: "beside a parked vehicle in a small neighborhood lot near an ordinary lamp post and young roadside trees" },
+  { id: 53, zone: "outside", ar: "واقف بجانب السيارة في ساحة مبنى محلات تجارية بسيطة مع باب تحميل خلفي مغلق", en: "standing beside a parked car outside a modest shop building with a closed rear delivery shutter" },
+  { id: 54, zone: "outside", ar: "بجانب سيارة متوقفة في خليج توقف نظامي قرب موقف حافلات محلي بسيط", en: "beside a car in a designated roadside parking bay near a modest neighborhood bus stop" },
+  { id: 55, zone: "outside", ar: "بجانب السيارة على موقف أسفل رصيف طريق ساحلي ممهد بحاجز منخفض", en: "standing beside a parked car on a paved coastal parking strip bordered by a low sea-facing barrier" },
+  { id: 56, zone: "outside", ar: "واقف بجانب سيارته في مواقف مبنى تدريبي صغير بسور عادي وأشجار ظل", en: "standing beside a parked car in a small training-center car park with a plain boundary wall and shade trees" },
+  { id: 57, zone: "outside", ar: "بجانب سيارة متوقفة عند طرف ساحة صناعية خفيفة بعيدة عن حركة الشاحنات", en: "standing beside a parked vehicle at the edge of a light-industrial service yard away from moving trucks" },
+  { id: 58, zone: "outside", ar: "بجانب السيارة في مواقف ملعب حي صغير بأرضية أسفلت وحاجز شبكي", en: "beside a parked car in an ordinary neighborhood sports-ground lot with asphalt paving and chain-link fence" },
+  { id: 59, zone: "outside", ar: "بجانب السيارة في موقف ترابي مستوٍ قرب مزرعة نخيل وسور بلوك بسيط", en: "beside a parked car on a level gravel layby near a palm farm and plain blockwork wall" },
+  { id: 60, zone: "outside", ar: "واقف بجانب السيارة على ساحة مسفلتة خارج عمارة سكنية عادية أمام بوابة جانبية", en: "standing next to a parked car in an apartment building's paved side parking apron beside a plain gate" },
 ];
 
 /* =================== قسم مستقل بالكامل للإضاءة والإنارة (19 خياراً) =================== */
@@ -193,6 +217,12 @@ export const THERMAL_CLIMATE_PHYSICS: Opt[] = [
 ];
 
 export const DAILY_LIFE_CLUTTER: Opt[] = [
+  { id: "rugged_military_radio", ar: "جهاز لاسلكي ميداني عسكري الشكل حقيقي البنية، جسم مطاطي متين وهوائي قصير ومقبض صوت ومشبك، مستقر على حافة مقعد الراكب دون تشغيل أو شعار وحدة", en: "realistic rugged military-spec handheld two-way field radio with rubberized body, short flexible antenna, volume knob and belt clip, safely resting on the passenger seat edge; no invented unit insignia or active transmission" },
+  { id: "folded_parking_receipts", ar: "قصاصات إيصالات مواقف مطوية في الجيب العلوي لباب الراكب", en: "two folded ordinary parking receipts tucked into the upper passenger-side door pocket" },
+  { id: "cabin_tissue_pack", ar: "علبة مناديل صغيرة مستعملة على طرف مقعد الراكب بعيدًا عن ذراع التصوير", en: "partially used small tissue packet lying safely on passenger seat edge, away from camera arm" },
+  { id: "loose_charging_cable", ar: "سلك شحن هاتف متراخٍ على جانب الكونسول دون عرقلة القير أو عجلة القيادة", en: "loose phone-charging cable draped along passenger-side center console edge, clear of the gear lever and steering controls" },
+  { id: "folded_paper_map", ar: "ورقة إرشادات طريق مطوية جزئيًا على مقعد الراكب", en: "half-folded local road directions sheet lying on the passenger seat, with no readable private information" },
+
   { id: "charger_12v_glow", ar: "رأس شاحن في مقبس الولاعة بنقطة LED زرقاء خافتة", en: "tiny subtle blue LED glow dot from 12V fast charger plugged into lower center console port" },
   { id: "rearview_parking_tag", ar: "بطاقة تصريح مواقف بيضاء معلقة بمرآة الرؤية الخلفية", en: "white residential RFID parking permit pass tag hanging from the center rearview mirror stalk" },
   { id: "door_pocket_keys", ar: "مفاتيح بيت عادية موضوعة بإهمال في جيب الباب السفلي", en: "standard house brass keys and fob resting casually in lower interior door storage pocket" },
@@ -248,6 +278,9 @@ export const APP_UI_ELEMENTS: Opt[] = [
 ];
 
 export const WINDOW_TINTS: Opt[] = [
+  { id: "tint_extra_dark_05", ar: "تظليل شديد جدًا للزجاج الجانبي والخلفي (نفاذ ضوء تقريبي 5%)", en: "very dark near-black side and rear passenger window tint, approximately 5% visible light transmission; windshield remains clear, side-window daylight and cabin visibility markedly reduced" },
+  { id: "tint_dark_10", ar: "تظليل داكن قوي للزجاج الجانبي والخلفي (نفاذ ضوء تقريبي 10%)", en: "strong dark charcoal side and rear window tint, approximately 10% visible light transmission; windshield remains clear, side-window illumination noticeably reduced" },
+
   { id: "tint_medium_02", ar: "تظليل كتم وسط (درجة 02) مع دخول الضوء من الزجاج الأمامي", en: "medium 35% charcoal window tint on side glasses, creating moody contrast with un-tinted windshield light" },
   { id: "tint_light_01", ar: "تظليل حراري نانوي خفيف (درجة 01) بمسحة زرقاء خافتة", en: "light 50% legal nano-ceramic tint giving subtle cool blue-green hue to interior shadows" },
   { id: "no_tint_clear", ar: "زجاج شفاف وكالة بدون تظليل (إضاءة كاملة للمقصورة)", en: "clear factory untinted windows with complete ambient daylight illuminating whole cabin" },
