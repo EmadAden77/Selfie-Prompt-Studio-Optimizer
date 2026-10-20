@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { copyToClipboard } from '../utils/clipboard';
 
 /* =================== القوائم الأساسية =================== */
@@ -151,16 +151,6 @@ export const QuickFlashGenerator: React.FC<QuickFlashGeneratorProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      const savedKey = localStorage.getItem('gemini_api_key');
-      if (savedKey) {
-        setApiKey(savedKey);
-        setTempKeyInput(savedKey);
-      }
-    } catch {}
-  }, []);
-
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
@@ -188,11 +178,9 @@ The reference person is the ABSOLUTE PRIMARY SUBJECT dominating 80% of the verti
 Incidental Background: ${loc.en} (${vehicleContext}). The vehicle is strictly secondary background.
 
 🔒 STRICT IDENTITY & BIOMETRIC DENSITY LOCK:
-- Exact 1:1 biometric replication of Middle Eastern / Saudi male from reference photo.
-- Precise facial bone structure, head proportions, eyelid shape, natural eyebrows, nose, lips, jawline, and chin.
-- Preserve 100% of the original hairline and individual hair density/texture.
-- Preserve 100% of the signature medium-stubble beard and mustache density, un-lasered organic neck contours.
-- Apparent age without smoothing, airbrushing, or artificial beautification.
+- Use the attached reference as the only identity source; preserve only visible facial geometry, skin tone, age cues, natural asymmetry, hairline, hair density, beard boundaries and beard growth pattern.
+- Do not invent eye color, freckles, wrinkles, ethnicity, hair, or beard traits that are not visible in the reference.
+- Keep the reference appearance natural, without smoothing, airbrushing, or artificial beautification.
 
 👤 Dominant Subject Parameters:
 - Physique: 193 cm (6'4"), 83 kg, lean athletic build, broad shoulders anchoring lower frame.
@@ -207,7 +195,7 @@ Incidental Background: ${loc.en} (${vehicleContext}). The vehicle is strictly se
 📐 Target Aspect: 9:16 vertical smartphone format.`;
   };
 
-  // Generate with server-side Gemini 3.8 Flash, custom key fallback, and instant deterministic fallback
+  // Generate through the server-side Gemini proxy, then fall back to the deterministic local engine
   const handleGenerate = async (customNoteOverride?: string) => {
     setIsLoading(true);
     const activeNote = customNoteOverride || customNote;
@@ -228,52 +216,15 @@ Incidental Background: ${loc.en} (${vehicleContext}). The vehicle is strictly se
       });
 
       if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.text) {
+        const data = await res.json().catch(() => null);
+        if (data?.success && data.text) {
           setGeneratedPrompt(data.text.trim());
           showToast('✓ تم توليد البرومبت الفائق عبر Gemini Flash');
           return;
         }
       }
 
-      // 2. Client direct fetch fallback if custom API key is present
-      if (apiKey.trim()) {
-        const systemInstruction = `You are an elite Prompt Engineer specializing in photorealistic smartphone selfies.
-Rules:
-1. The subject MUST dominate 75-85% of the vertical 9:16 frame.
-2. Subject metrics: 193 cm (6'4"), 83 kg, lean athletic build, identical facial structure, warm eyes, natural hair density/texture, exact beard grooming.
-3. Logical consistency is mandatory:
-If inside car, never place him outside or leaning on the hood.
-If wearing a t-shirt, never mention thobe reflections.
-Keep output focused and high-fidelity. Output ONLY the complete English prompt.`;
-
-        const userPrompt = `Generate a realistic selfie prompt:
-Zone & Setting: ${loc.en} (${loc.zone === 'inside' ? 'sitting in driver seat inside' : 'standing outside beside'} ${car.en})
-Lighting: ${light.en}
-Outfit: ${cloth.en}
-Story Context: ${activeNote}`;
-
-        const directRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey.trim()}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: userPrompt }] }],
-              systemInstruction: { parts: [{ text: systemInstruction }] },
-            }),
-          }
-        );
-        const directData = await directRes.json();
-        const directText = directData.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (directText) {
-          setGeneratedPrompt(directText.trim());
-          showToast('✓ تم توليد البرومبت عبر Gemini Flash');
-          return;
-        }
-      }
-
-      // 3. Fallback: Local instant high-fidelity deterministic engine
+      // Fallback: Local instant high-fidelity deterministic engine
       const localPrompt = buildDeterministicPrompt();
       setGeneratedPrompt(localPrompt);
       showToast('✓ تم إنشاء البرومبت فائق الواقعية بنجاح');
@@ -311,8 +262,8 @@ Story Context: ${activeNote}`;
     const carModelMap: Record<string, string> = {
       landcruiser: 'landcruiser_lc300',
       patrol: 'patrol_y62',
-      rr_sport: 'rangerover_sport',
-      yukon: 'gmc_yukon',
+      rr_sport: 'rr_sport_2017',
+      yukon: 'yukon_denali',
     };
     onApplyToStudio?.({
       locId,
@@ -739,7 +690,7 @@ Story Context: ${activeNote}`;
             </div>
 
             <p className="text-xs text-zinc-400 leading-relaxed">
-              التطبيق مجهز مسبقاً بمفتاح استوديو ويعمل فوراً! إذا كنت ترغب باستخدام مفتاحك الشخصي من Google AI Studio، يمكنك حفظه هنا:
+              يستخدم التطبيق مفتاح الخادم عند تشغيله خلف خادم Node. يمكنك إدخال مفتاحك الشخصي لهذه الجلسة فقط؛ لن يُحفظ في المتصفح ولن يُرسل مباشرة إلى Google من الواجهة:
             </p>
 
             <input
@@ -747,6 +698,7 @@ Story Context: ${activeNote}`;
               value={tempKeyInput}
               onChange={e => setTempKeyInput(e.target.value)}
               placeholder="AIzaSy..."
+              autoComplete="off"
               dir="ltr"
               className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500 font-mono"
             />
@@ -756,10 +708,9 @@ Story Context: ${activeNote}`;
                 <button
                   type="button"
                   onClick={() => {
-                    localStorage.removeItem('gemini_api_key');
                     setApiKey('');
                     setTempKeyInput('');
-                    showToast('تمت إزالة المفتاح المخصص، والاعتماد على الخادم');
+                    showToast('تمت إزالة المفتاح المخصص من الجلسة');
                   }}
                   className="text-xs text-rose-400 hover:underline"
                 >
@@ -780,9 +731,8 @@ Story Context: ${activeNote}`;
                   onClick={() => {
                     const trimmed = tempKeyInput.trim();
                     if (trimmed) {
-                      localStorage.setItem('gemini_api_key', trimmed);
                       setApiKey(trimmed);
-                      showToast('✓ تم حفظ المفتاح بنجاح');
+                      showToast('✓ تم حفظ المفتاح لهذه الجلسة فقط');
                     }
                     setShowKeyModal(false);
                   }}
