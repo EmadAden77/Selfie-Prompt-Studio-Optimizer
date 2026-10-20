@@ -80,7 +80,10 @@ test('external glass tint cannot alter outdoor face illumination', () => {
   const scene = fixture('outside', 'sodium_street');
   scene.tint = option('blackout');
   const { sanitized } = validateAndSanitizePhysics(scene);
-  assert.equal(sanitized.tint.id, 'exterior_glass_only');
+  assert.equal(sanitized.tint.id, 'blackout');
+  assert.match(sanitized.tint.en, /does not darken the face/);
+  scene.frame = option('close_face');
+  assert.equal(validateAndSanitizePhysics(scene).sanitized.tint.en, '');
 });
 
 test('artificial bokeh and unverified face details are suppressed', () => {
