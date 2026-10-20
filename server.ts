@@ -36,7 +36,7 @@ function readOptionEnglish(value: unknown, fallback: string): string {
 }
 
 function isValidGeminiKey(value: string): boolean {
-  return value.length >= 20 && value.length <= MAX_API_KEY_LENGTH && !/\\s/.test(value);
+  return value.length >= 20 && value.length <= MAX_API_KEY_LENGTH && !/\s/.test(value);
 }
 
 function providerErrorMetadata(error: unknown): JsonRecord {
@@ -76,7 +76,7 @@ function createGeminiClient(key: string): GoogleGenAI {
 
 const apiKey = readText(process.env.GEMINI_API_KEY, MAX_API_KEY_LENGTH);
 const ai = apiKey ? createGeminiClient(apiKey) : null;
-const configuredCorsOrigin = readText(process.env.CORS_ORIGIN || process.env.APP_URL, 500).replace(/\\/$/, '');
+const configuredCorsOrigin = readText(process.env.CORS_ORIGIN || process.env.APP_URL, 500).replace(/\/$/, '');
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '32kb' }));
