@@ -387,3 +387,23 @@ test('roof and tinted window invariants over 60 locations x 3 frames x 4 lightin
     }
   }
 });
+
+
+test('five-percent window tint reduces nighttime exterior light but not front-facing capture fill', async () => {
+  const { LIGHTING_OPTIONS, WINDOW_TINTS, ACCESSORIES, buildPrompt } = await import('../src/data/studioData');
+  const inside = fixture('inside', 'sodium_street');
+  inside.loc.id = 13;
+  inside.light = LIGHTING_OPTIONS.find(x => x.id === 'sodium_street')!;
+  inside.tint = WINDOW_TINTS.find(x => x.id === 'tint_extra_dark_05')!;
+  inside.accessory = ACCESSORIES.find(x => x.id === 'none')!;
+  const scene = validateAndSanitizePhysics(inside).sanitized;
+  assert.match(scene.light.en, /strongly attenuated/);
+  assert.match(scene.light.en, /deep cabin shadows/);
+  assert.doesNotMatch(buildPrompt(scene).en, /Sunglasses|sunglasses|third hand/i);
+  const lighter = fixture('inside', 'direct_flash');
+  lighter.loc.id = 13;
+  lighter.light = LIGHTING_OPTIONS.find(x => x.id === 'direct_flash')!;
+  lighter.tint = inside.tint;
+  const output = validateAndSanitizePhysics(lighter).sanitized;
+  assert.doesNotMatch(output.light.en, /strongly attenuated through dark side/);
+});
