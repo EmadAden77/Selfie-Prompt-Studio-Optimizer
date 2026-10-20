@@ -1,4 +1,5 @@
-import { BuildInput, Opt, Loc } from '../types/studio';
+import { BuildInput, Opt, Loc, SUBJECT_HEIGHT_CM } from '../types/studio';
+
 
 export interface PhysicalWarning {
   id: string;
@@ -92,6 +93,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   let sanitizedHeightCue = { ...input.heightCue };
   let sanitizedThermals = [...input.thermals];
   let sanitizedMicroWeathers = [...input.microWeathers];
+  let sanitizedFabrics = [...input.fabrics];
   let sanitizedInAppArtifacts = [...input.inAppArtifacts];
   let sanitizedHeightCueForClothing = { ...input.heightCue };
 
@@ -459,6 +461,40 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     });
   }
 
+
+  // One free hand can perform ONE action. The selfie hand remains on the phone.
+  if (isInside && (input.pose.id === 'hand_on_wheel' || input.tallErgonomics.some(x => x.id === 'forearm_span_wheel' || x.id === 'roof_handle_grip'))) {
+    const originalCount = sanitizedCabins.length;
+    sanitizedCabins = sanitizedCabins.filter(x => x.id !== 'large_hand_gear');
+    if (sanitizedCabins.length !== originalCount) {
+      warnings.push({
+        id: 'wheel_gear_hand_conflict', level: 'auto-correction',
+        titleAr: 'اليد الحرة لا تمسك المقود والقير معًا',
+        titleEn: 'Wheel and gear hand conflict',
+        descAr: 'تم حذف وضع اليد على القير لصالح وضعية اليد الأخرى المختارة.',
+        descEn: 'The gear-shifter hand action was removed to preserve one free hand.',
+        field: 'cabins',
+      });
+    }
+  }
+
+  // Tight head-and-chest shots cannot physically reveal the lower console or lap.
+  if (input.frame.id === 'close_face') {
+    sanitizedCabins = sanitizedCabins.filter(x => !['large_hand_gear', 'tissue_box_console'].includes(x.id));
+    sanitizedClutters = sanitizedClutters.filter(x => !['charger_12v_glow', 'door_pocket_keys'].includes(x.id));
+    sanitizedCabinArtifacts = sanitizedCabinArtifacts.filter(x => !['fresh_miswak_console'].includes(x.id));
+    sanitizedFabrics = input.fabrics.filter(x => x.id !== 'seat_hip_creases');
+    sanitizedThermals = sanitizedThermals.filter(x => x.id !== 'cup_sweat_droplets');
+    warnings.push({
+      id: 'tight_frame_visibility', level: 'info',
+      titleAr: 'استبعاد تفاصيل خارج الكادر القريب',
+      titleEn: 'Lower-cabin details omitted in close selfie',
+      descAr: 'تم استبعاد تفاصيل حجر الجالس والكونسول السفلي وحامل الأكواب والقير.',
+      descEn: 'Lap, lower console, cup holder and gear details are outside a close upper-body frame.',
+      field: 'frame',
+    });
+  }
+
   // 5. Calculate Realism Coherence Score
   const score = Math.max(65, 100 - deduction);
   const isCoherent = score >= 80;
@@ -506,7 +542,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
       zone: input.loc.zone,
       subjectDominancePct: 80, // strictly 75-85%
       cameraDistanceCm: isInside ? 65 : 75,
-      armPerspective: '24mm equivalent wide smartphone front camera with natural arm extension for 193cm frame',
+      armPerspective: '24mm equivalent wide smartphone front camera with natural arm extension for ${SUBJECT_HEIGHT_CM}cm frame',
     },
   };
 
@@ -528,6 +564,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     opticals: sanitizedOpticals,
     tint: sanitizedTint,
     skinNuances: sanitizedSkinNuances,
+    fabrics: sanitizedFabrics,
     heightCue: isInside ? sanitizedHeightCueForClothing : sanitizedHeightCue,
   };
 

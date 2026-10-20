@@ -102,3 +102,5 @@ test('exterior scene never leaks cabin clutter even if selected', () => {
   assert.deepEqual(sanitized.clutters, []);
   assert.deepEqual(sanitized.airflows, []);
 });
+
+test('gear and wheel are exclusive', () => { const x = fixture('inside', 'basement_tubes'); x.pose = option('hand_on_wheel'); x.cabins = [option('large_hand_gear')]; assert.equal(validateAndSanitizePhysics(x).sanitized.cabins.length, 0); });

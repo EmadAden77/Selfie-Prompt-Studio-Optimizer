@@ -126,3 +126,6 @@ export interface GeminiOptimized {
   improvedPromptAr: string;
   enhancementsSummary: string[];
 }
+
+export const SUBJECT_HEIGHT_CM = 193;
+export const SUBJECT_WEIGHT_KG = 83;

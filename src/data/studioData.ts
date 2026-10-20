@@ -1,4 +1,4 @@
-import { Loc, Opt, Cloth, PresetMood, BuildInput } from '../types/studio';
+import { Loc, Opt, Cloth, PresetMood, BuildInput, SUBJECT_HEIGHT_CM, SUBJECT_WEIGHT_KG } from '../types/studio';
 
 /* =================== 40 مكاناً سعودياً عفوياً (بدون معالم وبدون ربط بالإضاءة) =================== */
 export const LOCATIONS: Loc[] = [
@@ -486,13 +486,13 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
 
 👤 مواصفات الشخص المرجعي (بطل الصورة المهيمن):
 - الهوية: نفس ملامح وعيني وشخصية الشاب بالصورة المرجعية بدقة 100%.
-- القامة والبنية: فارع الطول (193 سم) ووزن (83 كجم) ذو بنية رياضية ممشوقة (Lean athletic build) وأكتاف عريضة تملأ أسفل الكادر.
+- القامة والبنية: فارع الطول (${SUBJECT_HEIGHT_CM} سم) ووزن (${SUBJECT_WEIGHT_KG} كجم) ذو بنية رياضية ممشوقة (Lean athletic build) وأكتاف عريضة تملأ أسفل الكادر.
 - تسريحة الشعر (بنفس الكثافة والسمك الأصلي): ${i.hair.ar}.
 - شكل وتنسيق اللحية (بنفس الكثافة والشارب الأصلي): ${i.beard.ar}.
 - التعبير العضلي والتشريحي الحقيقي: ${i.anatomicalExpr.ar}.
 - تفاصيل البشرة والنسيج الحيوي: ${joinAr(i.skinNuances)}.
 - تناسق الطول الفارع وتأثيره: ${i.heightCue.ar}.
-- ديناميكية جسد القامة الطويلة (193 سم): ${joinAr(i.tallErgonomics)}.
+- ديناميكية جسد القامة الطويلة (${SUBJECT_HEIGHT_CM} سم): ${joinAr(i.tallErgonomics)}.
 
 📷 تأطير السيلفي والكاميرا ومحاكاة التطبيقات:
 - التأطير المباشر: ${i.frame.ar}.
@@ -529,7 +529,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
 
 ${interiorPhysicsAr}
 
-🚫 ممنوعات قطعية: ${ANTI_AI_BLOCKLIST.join("، ")}.
+🚫 تجنب تغيير الهوية، والإضاءة غير المبررة، والجلد الاصطناعي، والأيدي المستحيلة، والتأطير الإعلاني للسيارة.
 📐 أبعاد الصورة: ${i.aspect.ar}.`;
 
   const en = `👑 MASTER COMPOSITION MANDATE: SUBJECT-FIRST SELFIE HIERARCHY
@@ -537,21 +537,21 @@ The reference person is the ABSOLUTE PRIMARY SUBJECT and dominant focal point of
 ANY OTHER ELEMENT (the vehicle, steering wheel, dashboard, street, buildings) is strictly INCIDENTAL & SECONDARY BACKGROUND, visible ONLY if and where the organic selfie arm angle naturally permits. NEVER zoom out to show the whole car, NEVER center the vehicle, NEVER frame like an automotive commercial. The man is the photo; the rest is just where he happens to be.
 
 🔒 STRICT IDENTITY & BIOMETRIC DENSITY LOCK:
-- STRICT REQUIREMENT: Exact replication of facial bone structure, head proportions, eye shape, spacing, eyelids, and natural eyebrows from the attached reference photo 1:1.
+- Exact replication of facial bone structure, head proportions, eye shape, spacing, eyelids, and natural eyebrows from the attached reference photo 1:1.
 - Exact nose contour, lip volume, cheekbones, jawline, chin, and ear shape.
 - The exact original skin tone from the reference (no nationality-based recoloring), authentic human facial asymmetry, and apparent age without artificial beautification, smoothing, or airbrushing.
-- Strictly MANDATORY to preserve the exact original hairline, individual hair texture, and natural hair density.
-- Strictly MANDATORY to preserve the exact original beard and mustache density, shape, and organic un-lasered irregularities.
+- Preserve preserve the exact original hairline, individual hair texture, and natural hair density.
+- Preserve preserve the exact original beard and mustache density, shape, and organic un-lasered irregularities.
 - DO NOT invent facial characteristics that are absent from the reference image.
 
 👤 Dominant Subject Parameters:
 - Identity: Exact Middle Eastern / Saudi man from attached reference photo.
-- Stature & Physique: 193 cm (6'4"), 83 kg, lean athletic build, broad shoulders framing the lower composition.
+- Stature & Physique: ${SUBJECT_HEIGHT_CM}cm (6'4"), ${SUBJECT_WEIGHT_KG}kg, lean athletic build, broad shoulders framing the lower composition.
 - Hair Flow & Styling (PRESERVING EXACT REFERENCE DENSITY & TEXTURE): ${i.hair.en}.
 - Beard Grooming (PRESERVING EXACT REFERENCE DENSITY & SHAPE): ${i.beard.en}.
 - Anatomical Facial Dynamics: ${i.anatomicalExpr.en}.
 - Micro-Dermal Realism: ${joinEn(i.skinNuances)}.
-- 193cm Scale Nuances: ${i.heightCue.en}.
+- ${SUBJECT_HEIGHT_CM}cm Scale Nuances: ${i.heightCue.en}.
 - Tall Ergonomics & Stature Dynamics: ${joinEn(i.tallErgonomics)}.
 
 📷 Selfie Camera & Optical Profile:
@@ -589,8 +589,9 @@ ANY OTHER ELEMENT (the vehicle, steering wheel, dashboard, street, buildings) is
 
 ${interiorPhysicsEn}
 
-🚫 STRICT FORBIDDEN LIST: ${ANTI_AI_BLOCKLIST.join(", ")}.
+🚫 Avoid identity changes, invented face details, fake studio lighting, synthetic skin, impossible hands, and car-commercial framing.
 📐 Target Aspect Ratio: ${i.aspect.en}.`;
 
-  return { ar, en };
+  const clean = (v: string) => v.replace(/\b(?:193|194|195)\s*cm\b/gi, SUBJECT_HEIGHT_CM + 'cm').replace(/\b(?:83|88)\s*kg\b/gi, SUBJECT_WEIGHT_KG + 'kg').replace(/STRICTLY MANDATORY|STRICT REQUIREMENT/gi, '').replace(/\n{3,}/g, '\n\n');
+  return { ar: clean(ar), en: clean(en) };
 }
