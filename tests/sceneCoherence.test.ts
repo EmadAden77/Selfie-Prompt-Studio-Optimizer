@@ -132,3 +132,20 @@ test('comfortable selfie reach never inherits height as arm distance', () => {
   assert.equal(sanitized.subsurfaces.some(x => x.id === 'thobe_jaw_bounce'), false);
   assert.match(sanitized.subsurfaces[0].en, /only if/);
 });
+
+test('shared scene policy drops restored cabin weather and motion outside', () => {
+  const x = fixture('outside', 'harsh_noon');
+  x.microWeathers = [option('raindrop_streak_window'), option('winter_breath_fade')];
+  x.gripMotions = [option('steering_hand_microblur'), option('natural_arm_stretch')];
+  const output = validateAndSanitizePhysics(x).sanitized;
+  assert.deepEqual(output.microWeathers, []);
+  assert.equal(output.gripMotions.some(y => y.id === 'steering_hand_microblur'), false);
+  assert.equal(output.gripMotions.some(y => y.id === 'natural_arm_stretch'), true);
+});
+
+test('prompt policy drops white-cloth reflection for black t-shirt', () => {
+  const x = fixture('inside', 'sodium_street');
+  x.subsurfaces = [option('thobe_jaw_bounce'), option('beard_follicle_shadow')];
+  const output = validateAndSanitizePhysics(x).sanitized;
+  assert.deepEqual(output.subsurfaces.map(y => y.id), ['beard_follicle_shadow']);
+});
