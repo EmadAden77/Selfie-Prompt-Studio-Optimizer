@@ -465,7 +465,6 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     subsurfaces: sanitizedSubsurfaces,
     screenCasts: sanitizedScreenCasts,
     light: sanitizedLight,
-    heightCue: sanitizedHeightCue,
     thermals: sanitizedThermals,
     microWeathers: sanitizedMicroWeathers,
     inAppArtifacts: sanitizedInAppArtifacts,
