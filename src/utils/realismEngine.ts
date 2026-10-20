@@ -647,6 +647,9 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   sanitizedFabrics = gate('fabrics', sanitizedFabrics);
   sanitizedThermals = gate('thermals', sanitizedThermals);
   sanitizedInAppArtifacts = gate('inAppArtifacts', sanitizedInAppArtifacts);
+  sanitizedMicroWeathers = gate('microWeather', sanitizedMicroWeathers);
+  sanitizedSubsurfaces = gate('subsurfaces', sanitizedSubsurfaces);
+  const safeGripMotions = gate('gripMotions', sanitizedGripMotions);
 
   const sanitized: BuildInput = {
     ...input,
@@ -664,7 +667,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     microWeathers: sanitizedMicroWeathers,
     inAppArtifacts: sanitizedInAppArtifacts,
     opticals: sanitizedOpticals,
-    gripMotions: sanitizedGripMotions,
+    gripMotions: safeGripMotions,
     anatomicalExpr: sanitizedAnatomicalExpr,
     tint: sanitizedTint,
     skinNuances: sanitizedSkinNuances,
