@@ -696,6 +696,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   // not from the originally requested light before time-of-day reconciliation.
   const contextual = resolveContextualOptics({
     ...input, light: sanitizedLight, pose: sanitizedPose, tint: sanitizedTint,
+    tallErgonomics: sanitizedTallErgonomics,
   });
   sanitizedLight = contextual.light;
   sanitizedPose = contextual.pose;
