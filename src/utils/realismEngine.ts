@@ -92,6 +92,8 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   let sanitizedHeightCue = { ...input.heightCue };
   let sanitizedThermals = [...input.thermals];
   let sanitizedMicroWeathers = [...input.microWeathers];
+  let sanitizedInAppArtifacts = [...input.inAppArtifacts];
+  let sanitizedHeightCueForClothing = { ...input.heightCue };
 
   if (isOutside) {
     activeRules.push('عزل تفاصيل المقصورة الداخلية تلقائياً (اللقطة خارج السيارة)');
@@ -189,6 +191,89 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   // 2. Interior Selfie Verification
   if (isInside) {
     activeRules.push('قفل هندسة مقصورة السائق (193 سم - مسند الرأس وبطانة السقف)');
+  }
+
+  // Interior geometry is constrained by a single handheld phone and two hands.
+  // Suppress mutually exclusive arm placements and unsupported cabin effects.
+  if (isInside) {
+    const usingSteeringWheel = input.pose.id === 'hand_on_wheel';
+    const adjustingCollar = input.pose.id === 'adjust_collar';
+    const garmentHasCollar = [
+      'thobe', 'shirt', 'linen', 'collar'
+    ].some(token => input.cloth.id.toLowerCase().includes(token));
+
+    if (adjustingCollar && !garmentHasCollar) {
+      sanitizedPose = {
+        id: 'arm_out',
+        ar: 'جالس بصورة طبيعية مع ذراع واحدة تحمل الهاتف والأخرى مسترخية دون تعديل ياقة غير موجودة',
+        en: 'seated naturally with one hand holding the selfie phone and the other resting, without adjusting a nonexistent collar',
+      };
+      warnings.push({
+        id: 'missing_collar_pose',
+        level: 'auto-correction',
+        titleAr: 'تصحيح وضعية تعديل الياقة',
+        titleEn: 'Collar gesture corrected',
+        descAr: 'أُزيلت حركة تعديل الياقة لأن الملابس المختارة لا تدعمها.',
+        descEn: 'Collar-adjustment gesture removed for an outfit without that collar.',
+        field: 'pose',
+      });
+    }
+
+    const hasWheelForearm = input.tallErgonomics.some(x => x.id === 'forearm_span_wheel');
+    const hasRoofGrip = input.tallErgonomics.some(x => x.id === 'roof_handle_grip');
+    if (hasWheelForearm && hasRoofGrip) {
+      sanitizedTallErgonomics = input.tallErgonomics.filter(x => x.id !== 'roof_handle_grip');
+      warnings.push({
+        id: 'conflicting_free_hand_positions',
+        level: 'auto-correction',
+        titleAr: 'منع تكرار اليد الحرة',
+        titleEn: 'Impossible simultaneous hand placements removed',
+        descAr: 'لا يمكن لليد الحرة الاستناد إلى المقود ومقبض السقف في الوقت نفسه.',
+        descEn: 'The free hand cannot touch the wheel and roof handle simultaneously.',
+        field: 'tallErgonomics',
+      });
+    }
+    if (usingSteeringWheel) {
+      sanitizedTallErgonomics = sanitizedTallErgonomics.filter(x => x.id !== 'roof_handle_grip');
+    }
+
+    const hasDeadCalm = input.airflows.some(x => x.id === 'cabin_dead_calm');
+    if (hasDeadCalm && input.airflows.length > 1) {
+      sanitizedAirflows = input.airflows.filter(x => x.id === 'cabin_dead_calm');
+      warnings.push({
+        id: 'conflicting_airflow',
+        level: 'auto-correction',
+        titleAr: 'تصحيح تدفق الهواء داخل المقصورة',
+        titleEn: 'Conflicting cabin airflow removed',
+        descAr: 'السكون التام لا يجتمع مع نسيم مكيف يحرك الشعر أو نافذة مفتوحة.',
+        descEn: 'Still cabin air cannot simultaneously move hair or enter through an open window.',
+        field: 'airflows',
+      });
+    }
+
+    const screenFlash = input.inAppArtifacts.some(x => x.id === 'front_screen_flash_burst');
+    const physicalFlash = input.light.id === 'direct_flash';
+    if (screenFlash && physicalFlash) {
+      sanitizedInAppArtifacts = input.inAppArtifacts.filter(x => x.id !== 'front_screen_flash_burst');
+      warnings.push({
+        id: 'flash_source_conflict',
+        level: 'auto-correction',
+        titleAr: 'منع مصدرَي فلاش متناقضين',
+        titleEn: 'Conflicting flash sources resolved',
+        descAr: 'تم الحفاظ على الفلاش الأساسي المختار دون إضافة فلاش شاشة ثانٍ.',
+        descEn: 'Kept the selected primary flash without inventing a second screen-flash source.',
+        field: 'inAppArtifacts',
+      });
+    }
+
+    // A fixed seat position does not mean a universally high headrest.
+    if (input.heightCue.id === 'headrest_max') {
+      sanitizedHeightCueForClothing = {
+        id: 'headrest_adjusted',
+        ar: 'مسند الرأس مضبوط على ارتفاع مريح وخلف الرأس وفق هندسة المقعد الفعلية',
+        en: 'head restraint adjusted to support the head according to the actual seat geometry, not forcibly at maximum height',
+      };
+    }
   }
 
   // 3. Clothing vs Subsurface Light Bounce Coherence
@@ -383,6 +468,8 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     heightCue: sanitizedHeightCue,
     thermals: sanitizedThermals,
     microWeathers: sanitizedMicroWeathers,
+    inAppArtifacts: sanitizedInAppArtifacts,
+    heightCue: isInside ? sanitizedHeightCueForClothing : sanitizedHeightCue,
   };
 
   return { report, sanitized };
