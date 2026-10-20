@@ -1145,6 +1145,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
                     return (
                       <button
                         key={item.id}
+                        {...lockProps('subsurfaces', item.id)}
                         type="button"
                         onClick={() => toggle(item.id, subsurfaceIds, setSubsurfaceIds)}
                         className={`px-2.5 py-1 rounded-lg text-[11px] transition border ${
@@ -1296,6 +1297,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
                     return (
                       <button
                         key={item.id}
+                        {...lockProps('microWeather', item.id)}
                         type="button"
                         onClick={() => toggle(item.id, microWeatherIds, setMicroWeatherIds)}
                         className={`px-2.5 py-1 rounded-lg text-[11px] transition border ${
