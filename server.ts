@@ -108,10 +108,8 @@ app.use('/api', (req, res, next) => {
 function rateLimitGemini(req: Request, res: Response, next: NextFunction): void {
   const now = Date.now();
 
-  if (rateBuckets.size > 5_000) {
-    for (const [key, bucket] of rateBuckets) {
-      if (now - bucket.startedAt >= RATE_WINDOW_MS) rateBuckets.delete(key);
-    }
+  for (const [key, bucket] of rateBuckets) {
+    if (now - bucket.startedAt >= RATE_WINDOW_MS) rateBuckets.delete(key);
   }
 
   const key = req.ip || 'unknown';
