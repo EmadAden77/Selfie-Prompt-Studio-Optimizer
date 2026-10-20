@@ -469,6 +469,12 @@ export function joinEn(list: Opt[], fallback = "none"): string {
 }
 
 export function buildPrompt(i: BuildInput): { ar: string; en: string } {
+  const interiorPhysicsAr = i.loc.zone === 'inside'
+    ? 'هندسة داخل السيارة: السيلفي ملتقط من مقعد السائق بواسطة يد واحدة؛ يظل الجسم خلف المقود وفق أبعاد المقعد الفعلية، مع عدم اختراع يد ثالثة أو إظهار كامل المقصورة قسرًا. الضوء الذي يدخل عبر زجاج السيارة يعتمد على جهة النافذة والتظليل؛ إنارة الشاشات ضعيفة وموضعية، ولا يوجد ضوء تعبئة غير مرئي. لا تُفرض مسافة هاتف أو ارتفاع مسند ثابت على جميع السيارات. المقود والطبلون لا يظهران إلا إذا سمحت زاوية الهاتف.'
+    : '';
+  const interiorPhysicsEn = i.loc.zone === 'inside'
+    ? 'INTERIOR SELFIE GEOMETRY: One hand holds the front-facing phone from the driver seat; the other hand has only one physically possible position. Driver torso stays behind the steering wheel with seat, B-pillar, dashboard and roof geometry true to the selected model. Only show cabin details permitted by actual handheld camera view, never an artificial wide vehicle shot. Exterior light penetrates only through plausible windows and tint; dashboard illumination is weak and localized, with no invisible fill. Seat and headrest positions must suit the real vehicle and tall stature, not a fixed universal extreme.'
+    : '';
   const ar = `👑 القاعدة الأساسية الصارمة للكادر (Subject-First Rule):
 الشخص المرجعي بالصورة المرفقة هو "أساس وبطل التصوير السيلفي" والمسيطر الأكبر على الكادر (يملأ 75% إلى 85% من مساحة الصورة بالمقدمة كسيلفي هاتف ممسوك باليد). أي عنصر آخر (السيارة، الديكور، الشارع، المباني) هو عنصر ثانوي يظهر في الخلفية فقط إذا سمحت زاوية واتجاه يد السيلفي الطبيعية، ولا يتم إبعاد الكاميرا لإظهار كامل السيارة أو محاكاة إعلان تجاري.
 
@@ -521,7 +527,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
 - فيزياء الطقس والمناخ المجهري: ${joinAr(i.thermals)}.
 - تفاصيل الطقس الموضعي اللحظي: ${joinAr(i.microWeathers)}.
 
-🚫 ممنوعات قطعية: ${ANTI_AI_BLOCKLIST.join("، ")}.
+${interiorPhysicsAr}\n\n🚫 ممنوعات قطعية: ${ANTI_AI_BLOCKLIST.join("، ")}.
 📐 أبعاد الصورة: ${i.aspect.ar}.`;
 
   const en = `👑 MASTER COMPOSITION MANDATE: SUBJECT-FIRST SELFIE HIERARCHY
@@ -579,7 +585,7 @@ ANY OTHER ELEMENT (the vehicle, steering wheel, dashboard, street, buildings) is
 - Thermal & Atmospheric Physics: ${joinEn(i.thermals)}.
 - Micro-Climate Atmosphere: ${joinEn(i.microWeathers)}.
 
-🚫 STRICT FORBIDDEN LIST: ${ANTI_AI_BLOCKLIST.join(", ")}.
+${interiorPhysicsEn}\n\n🚫 STRICT FORBIDDEN LIST: ${ANTI_AI_BLOCKLIST.join(", ")}.
 📐 Target Aspect Ratio: ${i.aspect.en}.`;
 
   return { ar, en };
