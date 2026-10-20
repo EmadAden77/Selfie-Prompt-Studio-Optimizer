@@ -104,3 +104,31 @@ test('exterior scene never leaks cabin clutter even if selected', () => {
 });
 
 test('gear and wheel are exclusive', () => { const x = fixture('inside', 'basement_tubes'); x.pose = option('hand_on_wheel'); x.cabins = [option('large_hand_gear')]; assert.equal(validateAndSanitizePhysics(x).sanitized.cabins.length, 0); });
+
+test('exterior noon selfie removes cold breath and seatbelt tension', () => {
+  const scene = fixture('outside', 'harsh_noon');
+  scene.microWeathers = [option('winter_breath_fade')];
+  scene.fabrics = [option('collar_tilt_tension'), option('seat_hip_creases')];
+  scene.opticals = [option('catchlight_reflection')];
+  scene.anatomicalExpr = option('sun_squint_lines');
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  assert.equal(sanitized.microWeathers.length, 0);
+  assert.equal(sanitized.fabrics.some(x => x.en.includes('seatbelt')), false);
+  assert.equal(sanitized.fabrics.some(x => x.id === 'seat_hip_creases'), false);
+  assert.equal(sanitized.opticals[0].en.includes('dashboard'), false);
+  assert.equal(sanitized.opticals[0].en.includes('brown iris'), false);
+  assert.equal(sanitized.anatomicalExpr.en.includes('crow'), false);
+});
+
+test('comfortable selfie reach never inherits height as arm distance', () => {
+  const scene = fixture('outside','sodium_street');
+  scene.gripMotions = [option('natural_arm_stretch')];
+  scene.anatomicalExpr = option('sun_squint_lines');
+  scene.subsurfaces = [option('ear_cartilage_glow'), option('thobe_jaw_bounce')];
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  assert.match(sanitized.gripMotions[0].en, /Comfortable/);
+  assert.doesNotMatch(sanitized.gripMotions[0].en, /maximum length|193cm reach/);
+  assert.doesNotMatch(sanitized.anatomicalExpr.en, /sun glare/);
+  assert.equal(sanitized.subsurfaces.some(x => x.id === 'thobe_jaw_bounce'), false);
+  assert.match(sanitized.subsurfaces[0].en, /only if/);
+});
