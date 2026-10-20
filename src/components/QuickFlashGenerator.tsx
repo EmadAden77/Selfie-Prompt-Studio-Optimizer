@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { copyToClipboard } from '../utils/clipboard';
+import { geminiApiUrl } from '../utils/geminiApi';
 
 /* =================== القوائم الأساسية =================== */
 type Zone = 'inside' | 'outside';
@@ -202,7 +203,7 @@ Incidental Background: ${loc.en} (${vehicleContext}). The vehicle is strictly se
 
     try {
       // 1. Send to server proxy route
-      const res = await fetch('/api/gemini/quick-generate', {
+      const res = await fetch(geminiApiUrl('/api/gemini/quick-generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
