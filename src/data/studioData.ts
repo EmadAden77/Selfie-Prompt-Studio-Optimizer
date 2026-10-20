@@ -528,6 +528,12 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
     const timeOfDay = i.timeOfDay && i.timeOfDay !== 'auto'
       ? (ar ? `وقت الالتقاط المختار: ${i.timeOfDay}.` : `Selected capture time: ${i.timeOfDay}.`)
       : undefined;
+    const conciseAvoidList = ANTI_AI_BLOCKLIST.filter(term => [
+      'cinematic lighting', 'studio lighting', 'professional photoshoot',
+      'airbrushed skin', 'plastic skin', 'changing facial features',
+      'altering hair density', 'altering beard density',
+      'full vehicle centered', 'distorted face proportions'
+    ].includes(term)).join(', ');
     const accessory = ['none', 'natural', 'no_accessory'].includes(i.accessory.id) ? undefined : pick(i.accessory);
     const beard = i.beard.id === 'ref_fresh_trimmed_neat'
       ? (ar ? 'احتفظ بلحية الصورة المرجعية وحدودها الطبيعية دون تشذيب أو إعادة رسم' : 'Preserve the beard, natural cheekline, neckline, mustache and growth gaps as actually visible; no added grooming')
@@ -586,7 +592,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
     ]);
     append(ar ? 'ضوابط واقعية نهائية' : 'FINAL REALISM CHECK', [
       ar ? 'لا أيدٍ إضافية، لا تفاصيل خارج مجال الكاميرا، لا تجميل للهوية أو وهج غير مبرر، ولا تأطير إعلاني للسيارة.' :
-        `No extra hands, off-frame details, identity retouching, unmotivated glow or automotive-commercial framing. Avoid these failure modes: ${ANTI_AI_BLOCKLIST.join(', ')}.`
+        `No extra hands, off-frame details, identity retouching, unmotivated glow or automotive-commercial framing. Avoid these failure modes: ${conciseAvoidList}.`
     ]);
     return normalized(sections.join('\n\n'));
   };
