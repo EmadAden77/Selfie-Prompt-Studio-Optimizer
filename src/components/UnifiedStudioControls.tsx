@@ -788,7 +788,8 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
               {HEIGHT_CUES.map(hc => (
                 <button
                   key={hc.id}
-                  type="button"
+                  {...lockProps('heightCue', hc.id)}
+                type="button"
                   onClick={() => setHeightCueId(hc.id)}
                   className={`p-2 rounded-xl text-right text-xs border transition ${
                     heightCueId === hc.id
