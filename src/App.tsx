@@ -184,11 +184,22 @@ export default function App() {
 
   const handleSetLocId = (id: number) => {
     setLocId(id);
-    if (autoLighting) {
-      const analysis = analyzeLocationLighting(id, timeOfDay);
-      setLightId(analysis.primaryRecommendedLightId);
-    }
   };
+
+  // Re-evaluate physically plausible lighting whenever the location OR time changes.
+  // Respect manually selected lighting when auto mode is off.
+  useEffect(() => {
+    if (!autoLighting) return;
+    const analysis = analyzeLocationLighting(locId, timeOfDay);
+    const knownIds = new Set((LIGHTING as Opt[]).map(option => option.id));
+    const recommended = [
+      analysis.primaryRecommendedLightId,
+      ...analysis.recommendations.map(option => option.id),
+    ].find(id => knownIds.has(id));
+    if (recommended) {
+      setLightId(previous => previous === recommended ? previous : recommended);
+    }
+  }, [locId, timeOfDay, autoLighting]);
 
   useEffect(() => {
     saveStored({
