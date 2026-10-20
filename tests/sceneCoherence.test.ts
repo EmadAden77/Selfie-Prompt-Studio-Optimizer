@@ -303,7 +303,8 @@ test('real mosque-parking cabin selfie has windshield daylight, roof-clearance a
   assert.match(text, /5% visible light transmission/);
   assert.match(text, /Parking location context, not a mandatory visible background/);
   assert.match(text, /Toyota Land Cruiser LC300/);
-  assert.match(text, /harsh overhead direct noon sun casting sharp vertical shadows/);
+  assert.match(text, /harsh high-contrast midday daylight entering only through/);
+  assert.doesNotMatch(text, /harsh overhead direct noon sun casting sharp vertical shadows/);
   assert.doesNotMatch(text, /high 45-degree selfie angle from above/);
   assert.doesNotMatch(text, /one large hand resting atop steering wheel/);
   assert.doesNotMatch(text, /Seated in the driver seat of pearl white/);
@@ -380,8 +381,9 @@ test('roof and tinted window invariants over 60 locations x 3 frames x 4 lightin
         assert.ok(prompt.includes('Height 193cm'));
         assert.doesNotMatch(prompt, /(?:195|194)cm frame/);
         if (loc.zone === 'inside' && id === 'harsh_noon' && loc.id !== 10) {
-          assert.match(prompt, /harsh overhead direct noon sun casting sharp vertical shadows/);
-          assert.match(prompt, /opaque vehicle roof blocks direct overhead rays/);
+          assert.match(prompt, /harsh high-contrast midday daylight entering only through/);
+          assert.doesNotMatch(prompt, /harsh overhead direct noon sun casting sharp vertical shadows/);
+          assert.match(prompt, /opaque vehicle roof blocks direct overhead rays and any vertical outdoor sun path/);
         }
         if (loc.zone === 'outside') assert.doesNotMatch(prompt, /window tint affects cabin face illumination/i);
       }
