@@ -58,7 +58,7 @@ export function resolveContextualOptics(scene: BuildInput): ContextualOptics {
     // Preserve the selected night source while constraining its transmission path.
     light = appendLight(light,
       'مصدر الإضاءة الليلية المختار يبقى كما هو، لكن وصوله للمقصورة يمر عبر الزجاج المتاح؛ يضعف بشدة عبر الزجاج الجانبي والخلفي المظلل، مع ظلال عميقة وتعريض هاتف محدود دون إضاءة تعبئة مخفية.',
-      'The selected night source remains unchanged, but its cabin transmission follows the available glazing; it is strongly attenuated through dark side and rear glass, with deep shadows and limited phone exposure, never hidden studio fill.');
+      'The selected night source remains unchanged, but its cabin transmission follows the available glazing; it is strongly attenuated through dark side and rear glass, with deep cabin shadows and limited phone exposure, never hidden studio fill.');
     notes.push('heavy_tint_night_transmission');
   }
 
