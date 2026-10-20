@@ -1,0 +1,1793 @@
+```react
+import React, { useMemo, useState, useEffect, useRef } from "react";
+
+/* =================== الأنواع =================== */
+type Tab = "gen" | "presets" | "sessions" | "guide" | "about";
+type Zone = "inside" | "outside";
+type Lang = "ar" | "en" | "both";
+type StepCategory = "subject" | "framing" | "attire" | "background" | "physics";
+
+interface Loc { id: number; zone: Zone; ar: string; en: string; }
+interface Opt { id: string; ar: string; en: string; }
+interface Cloth extends Opt { cat: string; }
+
+interface SavedSession {
+  id: string;
+  name: string;
+  createdAt: number;
+  fav: boolean;
+  data: Record<string, unknown>;
+}
+
+interface PresetMood {
+  id: string;
+  title: string;
+  badge: string;
+  desc: string;
+  icon: string;
+  data: Partial<{
+    locId: number; carModelId: string; carColorId: string; clothId: string;
+    accessoryId: string; poseId: string; seasonId: string; timeId: string;
+    weatherId: string; anatomicalExprId: string; frameId: string; aspectId: string;
+    phoneId: string; angleId: string; lightId: string; beardId: string;
+    hairId: string; heightCueId: string; storylineId: string; tintId: string;
+    extraIds: string[]; streetIds: string[]; envIds: string[]; bgcarIds: string[];
+    bgpeopleIds: string[]; atmosIds: string[]; opticalIds: string[]; cabinIds: string[];
+    skinNuanceIds: string[]; appUiIds: string[]; gripMotionIds: string[]; dashUiIds: string[];
+    subsurfaceIds: string[]; fabricIds: string[]; thermalIds: string[]; clutterIds: string[];
+  }>;
+}
+
+/* =================== 40 مكاناً سعودياً عفوياً (بدون معالم وبدون ربط بالإضاءة) =================== */
+const LOCATIONS: Loc[] = [
+  // 🚗 داخل مقصورة السيارة (20 مكاناً)
+  { id: 1, zone: "inside", ar: "مواقف سكنية مظللة بشنابر خرسانية ومظلات قماشية", en: "shaded residential carport with concrete pillars and standard cloth canopy" },
+  { id: 2, zone: "inside", ar: "شارع فرعي هادئ داخل حي سكني أمام سور فيلا بيج عادي", en: "quiet residential side street parked beside an ordinary beige villa boundary wall" },
+  { id: 3, zone: "inside", ar: "مسار خدمة بطيء بمحاذاة طريق سريع مفتوح بدون مبانٍ", en: "slow service road lane running parallel to an open highway without buildings" },
+  { id: 4, zone: "inside", ar: "مسار سيارات (درايف ثرو) ضيق لمقهى محلي بسيط", en: "narrow drive-thru order lane of a simple local coffee kiosk" },
+  { id: 5, zone: "inside", ar: "مواقف مكشوفة أمام مجمع سكني بسيط بأرصفة متبادلة", en: "open parking lot in front of an ordinary residential complex with interlocking curb pavers" },
+  { id: 6, zone: "inside", ar: "مواقف رملية ترابية شاسعة مفتوحة خلف مخطط سكني جديد", en: "wide open dirt gravel lot behind a newly zoned residential development" },
+  { id: 7, zone: "inside", ar: "داخل مسار محطة وقود عادية بين مضخات التعبئة", en: "inside a standard highway fuel station lane positioned between pump islands" },
+  { id: 8, zone: "inside", ar: "شارع تجاري محلي بسيط أمام واجهات محلات وبقالة بدون لوحات بارزة", en: "local community strip in front of ordinary shopfronts and a small neighborhood grocery" },
+  { id: 9, zone: "inside", ar: "مواقف مغسلة سيارات يدوية بأرضية مبللة بالإسمنت", en: "manual car wash bay parking with concrete floor" },
+  { id: 10, zone: "inside", ar: "مواقف سفلية (قبو سرداب) لمبنى سكني بأعمدة مرقمة", en: "underground basement parking lot of an apartment building with numbered pillars" },
+  { id: 11, zone: "inside", ar: "مسار كتف الطريق الصحراوي الممهد بمحاذاة خط السفر", en: "paved desert highway shoulder shoulder stop off an open intercity route" },
+  { id: 12, zone: "inside", ar: "شارع قديم بجدران ستوكو عادية وأسلاك علوية متدلية", en: "older neighborhood residential street with textured stucco walls and overhead cables" },
+  { id: 13, zone: "inside", ar: "مواقف مسجد حي هادئ محاط بأشجار النيم والكونوكاربس", en: "quiet local neighborhood mosque parking surrounded by neem and trimmed hedge trees" },
+  { id: 14, zone: "inside", ar: "طريق زراعي فرعي ضيق محاط بأسوار مزارع نخيل قديمة", en: "narrow rural agricultural side lane bordered by old private palm farm fences" },
+  { id: 15, zone: "inside", ar: "مواقف مجمع دوائر حكومية بسيط بأعمدة مظلات حديدية كيربي", en: "plain public service branch parking lot with corrugated steel sheet canopies" },
+  { id: 16, zone: "inside", ar: "مسار دائري هادئ في نهاية شارع مسدود (Cul-de-sac) داخل حي راقٍ", en: "quiet turnaround circle at the end of a dead-end street in a residential district" },
+  { id: 17, zone: "inside", ar: "مواقف محطة فحص دوري أو منطقة صناعية خفيفة خالية", en: "empty asphalt yard near light vehicle inspection workshops" },
+  { id: 18, zone: "inside", ar: "طريق صخري جبلي غير ممهد ومفتوح الأفق", en: "unpaved rocky plateau trail with distant open horizon" },
+  { id: 19, zone: "inside", ar: "مواقف مجمع عيادات أو صيدلية عادية على زاوية شارع", en: "ordinary street-corner parking lot outside a local neighborhood clinic and pharmacy" },
+  { id: 20, zone: "inside", ar: "طريق ردمية ترابي ناعم يتوغل بين نفود رملية خفيفة", en: "smooth compacted dirt desert trail cutting through low sand dunes" },
+
+  // 🚶‍♂️ خارج السيارة بجانبها أو متكئاً عليها (20 مكاناً)
+  { id: 21, zone: "outside", ar: "واقف بجانب باب السائق في شارع سكني هادئ بأرصفة متداخلة", en: "standing beside driver door on an ordinary quiet residential street with paver sidewalks" },
+  { id: 22, zone: "outside", ar: "متكئ على رفرف أو كبوت السيارة في ساحة نفود رملية مفتوحة", en: "leaning casually against the front hood/fender in an open desert sand area" },
+  { id: 23, zone: "outside", ar: "بجانب السيارة في موقف أرضي ترابي مستوٍ بجوار شجيرات صحراوية", en: "beside the vehicle on flat dirt ground beside sparse native wild desert shrubs" },
+  { id: 24, zone: "outside", ar: "خلف السيارة والصندوق الخلفي مفتوح في حوش أو كراج منزلي", en: "behind the car with tailgate open inside a spacious private paved home courtyard" },
+  { id: 25, zone: "outside", ar: "بجانب السيارة على ممشى خرساني بسيط بجوار سور حديقة حي عادية", en: "beside the car alongside a concrete public walkway bordering a neighborhood park wall" },
+  { id: 26, zone: "outside", ar: "بجانب السيارة تحت كوبري خرساني ضخم على جانب طريق عريض", en: "standing beside car beneath a massive wide concrete flyover bridge underpass" },
+  { id: 27, zone: "outside", ar: "بجانب السيارة في ساحة مواقف أسفلتية واسعة ومفتوحة تماماً", en: "beside car in a vast empty open commercial asphalt parking apron" },
+  { id: 28, zone: "outside", ar: "متكئ على باب السائق المفتوح أمام بوابة حديدية بتصميم هندسي بسيط", en: "leaning on the open driver door in front of a plain geometric wrought-iron residential gate" },
+  { id: 29, zone: "outside", ar: "بجانب السيارة على رصيف محطة وقود استراحة سفر نائية", en: "standing beside vehicle on raised curb of a remote highway travel stop" },
+  { id: 30, zone: "outside", ar: "بجانب مقدمة السيارة على حافة أرض صخرية مرتفعة مطلة على فضاء مفتوح", en: "standing near vehicle front bumper at the edge of an elevated rocky plateau overlook" },
+  { id: 31, zone: "outside", ar: "بجانب السيارة في شارع حي حديث بمبانٍ قيد التشطيب ومخلفات بناء نظيفة", en: "beside car on a modern suburban street with newly plastered villa facades" },
+  { id: 32, zone: "outside", ar: "بجانب باب السيارة المفتوح أمام مدخل بيت شعبي قديم بأبواب خشبية", en: "beside the open vehicle door outside a traditional plain mudbrick building frontage" },
+  { id: 33, zone: "outside", ar: "بجانب السيارة بين أحواض نخيل وساقية ماء في مزرعة ريفية هادئة", en: "beside vehicle among irrigated date palm basins inside a tranquil rural estate" },
+  { id: 34, zone: "outside", ar: "بجانب السيارة في موقف خارجي ترابي لميدان هجن أو فروسية محلي", en: "beside the car in an unpaved open field parking area near a local equestrian track" },
+  { id: 35, zone: "outside", ar: "متكئ على السيارة في ساحة تفريغ مواقف شاحنات هادئة", en: "leaning against vehicle in a quiet gravel truck rest apron off an industrial corridor" },
+  { id: 36, zone: "outside", ar: "بجانب السيارة على طرف مسار بري محاط بسياج شبكي أمني بسيط", en: "beside car along an unpaved border trail bordered by standard chain-link fence" },
+  { id: 37, zone: "outside", ar: "واقف عند فتحة باب الراكب المفتوح في موقف مظلل بمبنى تجاري", en: "standing at open passenger door in an open-air shaded commercial ground slot" },
+  { id: 38, zone: "outside", ar: "بجانب السيارة على شاطئ بحري هادئ بأرضية رملية مبللة وصلبة", en: "beside car parked on hard-packed coastal sand shoreline flat" },
+  { id: 39, zone: "outside", ar: "بجانب السيارة في شارع مستودعات هادئ بهياكل حديدية وبوابات منزلقة", en: "beside car on a wide quiet logistics warehouse service street" },
+  { id: 40, zone: "outside", ar: "بجانب السيارة على رصيف عريض مفروش ببلاط إنترلوك أمام سور مدرسة حي", en: "beside car on a wide interlocking paved sidewalk along a neighborhood school wall" },
+];
+
+/* =================== قسم مستقل بالكامل للإضاءة والإنارة =================== */
+const LIGHTING_OPTIONS: Opt[] = [
+  // ☀️ إضاءات النهار الطبيعية
+  { id: "harsh_noon", ar: "شمس ظهيرة نجدية ساطعة وظلال عمودية حادة تحت الأنف والفك", en: "harsh overhead direct noon sun casting sharp vertical shadows under nose, brow, and chin" },
+  { id: "golden_hour", ar: "الساعة الذهبية (أشعة شمس برتقالية دافئة مائلة من نافذة السائق)", en: "warm golden hour low-angle sunlight cutting horizontally across cheek and cabin" },
+  { id: "soft_morning", ar: "صباح باكر بضوء ناعم نقي ومنعش بدون تباين حاد", en: "crisp early morning soft natural daylight, gentle low-contrast facial illumination" },
+  { id: "afternoon_diffuse", ar: "عصر دافئ مع ضوء شمس مائل معتدل الدفء", en: "warm late-afternoon natural ambient light with gentle directional amber tone" },
+  { id: "sunset_glow", ar: "وهج مغرب قرمزي وبرتقالي غامق يلف الأفق والوجه", en: "dramatic dusk crimson-orange horizon afterglow illuminating side of face" },
+  { id: "blue_hour", ar: "الساعة الزرقاء الباردة بعد الغروب مباشرة", en: "cool cinematic blue hour atmospheric ambient lighting with subtle deep cyan shadows" },
+  { id: "overcast_haze", ar: "نهار غائم جزئياً أو سماء مغبرة بضوء رمادي مشتت فائق النعومة", en: "diffused overcast or dusty hazy daylight producing ultra-soft wrap-around skin shadows" },
+
+  // 💡 إضاءات ليلية واصطناعية
+  { id: "sodium_street", ar: "أعمدة إنارة الشوارع الصوديوم الكلاسيكية (إضاءة صفراء برتقالية دافئة)", en: "vintage high-pressure sodium street lamps casting authentic warm orange-amber overhead glow" },
+  { id: "led_modern_street", ar: "أعمدة إنارة بيضاء باردة حديثة (LED شوارع بيضاء)", en: "contemporary municipal cold white LED streetlights with clean neutral luminance" },
+  { id: "direct_flash", ar: "فلاش الهاتف المباشر في مكان معتم (سيلفي فلاش عالي التباين ولمعة بشرة حقيقية)", en: "raw harsh on-axis direct smartphone camera flash in dark environment with authentic specular shine" },
+  { id: "station_canopy", ar: "فلورسنت وسقف محطة الوقود الساطع المنتشر من الأعلى", en: "intense white overhead commercial canopy fluorescent floodlighting of a fuel station" },
+  { id: "dash_screens_glow", ar: "وهج شاشات المقصورة والكونسول الملون في عتمة الليل التامة", en: "subtle cool blue-cyan ambient glow emitted solely by digital instrument cluster and infotainment" },
+  { id: "tunnel_tungsten", ar: "إضاءة نفق صفراء تنجستن دائرية متكررة", en: "warm artificial tungsten and amber overhead tunnel utility lamps illuminating interior" },
+  { id: "single_distant_lamp", ar: "مصباح جداري وحيد خافت على بعد أمتار في ليل ساكن", en: "faint solitary exterior incandescent porch bulb casting moody asymmetric side light" },
+  { id: "ambient_drive_thru", ar: "أضواء لوحة طلبات الدرايف ثرو المضيئة المتوهجة على جانب الوجه", en: "colorful vibrant backlit menu board signage casting side glow onto subject's face" },
+  { id: "headlights_bounce", ar: "أضواء سيارة قادمة من بعيد ترتد بنعومة عبر الزجاج", en: "gentle indirect wash from distant passing car headlights cutting across driver side" },
+  { id: "pure_moonlight", ar: "ضوء قمر صحراوي بارد وفضي في مكان مظلم تماماً", en: "dim ethereal cool silver moonlight illuminating facial contours against pitch-black surroundings" },
+  { id: "warm_car_cabin_dome", ar: "لمبة سقف السيارة الداخلية الصفراء الخافتة فوق المرآة", en: "warm yellow interior car dome ceiling bulb casting soft intimate overhead cabin glow" },
+  { id: "basement_tubes", ar: "أنابيب فلورسنت بيضاء طويلة في قبو مواقف مغلق", en: "industrial dual white fluorescent ceiling strip tubes reflecting off car roof and glass" },
+  { id: "neon_side_wash", ar: "انعكاس نيون تجاري خافت (أحمر/أخضر) من زاوية الشارع", en: "subtle off-camera commercial neon sign glow reflecting gently along the vehicle shoulder" },
+];
+
+// تسريحات الشعر المحافظة بدقة 100% على نفس الكثافة، السمك، وخط الشعر الأصلي في الصورة المرجعية
+const HAIR_STYLES: Opt[] = [
+  {
+    id: "ref_signature_tousled",
+    ar: "تسريحة المرجع الأصلية (نفس الكثافة الطبيعية، تصفيف جانبي خفيف بأطراف الأصابع)",
+    en: "exact hair styling from reference photo: maintaining exact same medium-full density, natural dark textured strands gently swept to the side and up with natural volume, preserving exact mature temple hairline"
+  },
+  {
+    id: "ref_brush_back_natural",
+    ar: "مسحوب للخلف بالأصابع بحجم طبيعي (نفس الكثافة الأصلية بدون جل)",
+    en: "hair brushed casually backward using fingers, keeping the EXACT same natural hair density and strand thickness as reference, un-gelled matte finish, accentuating the natural brow line"
+  },
+  {
+    id: "ref_soft_side_sweep",
+    ar: "تصفيف جانبي ناعم مع حركة الشعر الطبيعية (نفس الكثافة والطول)",
+    en: "casual soft side sweep following natural hair growth direction, identical density and hair volume as reference photo, softly resting across top without changing hair length or thickness"
+  },
+  {
+    id: "ref_forward_casual_crop",
+    ar: "خصلات مبعثرة للأمام بعفوية فوق الجبين (نفس الكثافة والسمك)",
+    en: "casual forward textured fringe with natural relaxed strands gently touching upper forehead, exact same hair density, texture, and natural black color as the reference image"
+  },
+  {
+    id: "ref_windblown_postgym",
+    ar: "حركة عفوية متأثرة بهواء التكييف (نفس الكثافة الأصلية وخصلات حرة)",
+    en: "slightly windblown relaxed casual hair with organic separation from AC airflow, strictly maintaining exact same hair volume, natural dark color, and density as reference"
+  },
+  {
+    id: "covered_traditional",
+    ar: "مغطى بشماغ أحمر أو غترة بيضاء (مع إبقاء خط اللحية والفك الأصلي)",
+    en: "wearing traditional Saudi headwear (shemagh/ghutra), preserving the exact facial contours and identical beard density around jawline"
+  }
+];
+
+// أنماط ضبط وتنسيق اللحية (مع تثبيت الكثافة الأصلية 100%)
+const BEARD_STYLES: Opt[] = [
+  {
+    id: "ref_signature_beard",
+    ar: "لحية الصورة المرجعية الأصلية (نفس الكثافة، الطول، والشارب المتصل والخط الطبيعي)",
+    en: "exact signature beard and mustache from reference photo: identical groomed medium-stubble density, natural cheek line, organic chin contour, identical mustache thickness and soft neck taper"
+  },
+  {
+    id: "ref_fresh_trimmed_neat",
+    ar: "نفس لحية المرجع مع تحديد طبيعي ونظيف للحواف (نفس الكثافة الكاملة)",
+    en: "reference beard with freshly cleaned and sharpened natural cheekline, preserving 100% of the original beard density, thickness, and mustache proportions from the reference photo"
+  },
+  {
+    id: "ref_rugged_unlined",
+    ar: "نفس لحية المرجع بنمط كاجوال عفوي (شعيرات متناثرة ناعمة عند الرقبة)",
+    en: "reference beard left in its organic natural state with soft un-lasered edges along lower neck, keeping the exact same hair follicle density and dark tone as reference photo"
+  }
+];
+
+const ANATOMICAL_EXPRESSIONS: Opt[] = [
+  { 
+    id: "ref_warm_smile", 
+    ar: "نفس ابتسامة المرجع الدافئة العفوية (إشراقة عيون هادئة وشفاه متلامسة برقة)", 
+    en: "exact warm candid smile from reference photo: soft relaxed lip corners, genuine warm amber-brown eye gaze, natural crow's feet creases" 
+  },
+  { 
+    id: "sun_squint_lines", 
+    ar: "تضيّق تشريحي للجفون مع تجاعيد الضحك الطبيعية حول العين (Squint / Crow's Feet)", 
+    en: "slight squint against sun glare, natural micro-creases and crow's feet wrinkles around orbicularis oculi muscles, zero tension" 
+  },
+  { 
+    id: "relaxed_jaw_unclenched", 
+    ar: "فك مسترخٍ طبيعي غير مشدود والشفتان متلامستان بعفوية تامة", 
+    en: "fully relaxed masseter jawline, completely unclenched teeth, lips touching naturally without forced pout" 
+  },
+  { 
+    id: "asymmetric_micro_smirk", 
+    ar: "ابتسامة خفيفة غير متماثلة (ارتفاع طفيف في زاوية فم واحدة)", 
+    en: "subtle asymmetric micro-smirk with unilateral corner of mouth slightly lifted naturally, authentic human facial asymmetry" 
+  },
+  { 
+    id: "raised_eyebrow_candid", 
+    ar: "حاجب واحد مرفوع بمليمترات بتعبير تساؤلي عفوي وشبابي", 
+    en: "one eyebrow subtly raised by a couple millimeters, casual inquiring candid gaze, subtle forehead tension lines" 
+  },
+  { 
+    id: "road_focused_glance", 
+    ar: "نظرة متأملة مسروقة للشارع مع تركيز بؤبؤ العين بعيداً عن العدسة", 
+    en: "candid off-camera gaze focused on distance, authentic eye convergence, relaxed natural eyelids catching ambient light" 
+  },
+];
+
+const HEIGHT_CUES: Opt[] = [
+  { id: "headrest_max", ar: "مسند الرأس مرفوع لأعلى نقطة (ملاءمة طول 195 سم)", en: "car seat headrest visibly extended to its highest setting behind the tall neck" },
+  { id: "auto_scale", ar: "المقعد مرجع للخلف لاستيعاب الساقين الطويلتين", en: "driver seat naturally pushed back to accommodate tall 195cm frame, natural broad shoulder span" },
+  { id: "tall_roofline", ar: "الرأس قريب نسبياً من بطانة سقف السيارة بالداخل", en: "head clearly positioned near the vehicle roof-liner emphasizing tall 195cm stature" },
+  { id: "long_arm_reach", ar: "امتداد ذراع سيلفي طويل يعطي زاوية رؤية واسعة للكابينة", en: "extended long-reach arm selfie creating wider visual perspective inside cabin" },
+  { id: "seatbelt_geometry", ar: "حزام الأمان ممتد بزاوية حادة من القائم ليغطي الصدر العريض", en: "seatbelt pulling taut at a distinct downward acute angle from high B-pillar mount across broad chest" },
+  { id: "elbow_door_rest", ar: "الساعد الطويل مستند بارتياح على بطانة الباب العلوية", en: "tall athletic forearm and elbow resting naturally on the padded top window ledge of driver door" },
+];
+
+const SKIN_NUANCES: Opt[] = [
+  { id: "ref_freckles_moles", ar: "نمش المرجع الخفيف ونقاط الجلد الطبيعية بالوجنتين والأنف", en: "subtle organic sun freckles and micro-skin texture across cheeks and bridge of nose exactly matching reference photo" },
+  { id: "t_zone_sheen", ar: "لمعة طبيعية خفيفة من دفء الجو على الأنف والجبين", en: "natural subtle T-zone skin hydration sheen on forehead and nose bridge from warm ambient air" },
+  { id: "stray_beard_hairs", ar: "شعيرات لحية طبيعية غير مقصوصة بمسطرة ليزر على الرقبة", en: "natural organic stray beard hairs along the lower neck and jawline matching reference un-lasered beard contour" },
+  { id: "wrist_vein_athletic", ar: "أوردة يد ومعصم رياضية خفيفة مع مسكة الجوال (88 كجم)", en: "subtle athletic vascularity and wrist sinew definition on selfie hand matching lean 88kg physique" },
+];
+
+const SUBSURFACE_PHYSICS: Opt[] = [
+  { id: "ear_cartilage_glow", ar: "توهج أحمر ياقوتي في غضروف الأذن عند نفاذ الضوء", en: "authentic red ruby subsurface scattering translucency through ear cartilage rim backlit by ambient light" },
+  { id: "thobe_jaw_bounce", ar: "ارتداد ضوئي ناعم من بياض قماش الثوب يضيء أسفل الذقن والفك", en: "soft diffuse white ambient bounce light reflecting off the bright cotton thobe onto the underside of the jawline and neck" },
+  { id: "beard_follicle_shadow", ar: "تدرج رمادي خافت تحت الجلد في مناطق منبت شعر اللحية", en: "micro-tonal subdermal cool grey desaturation beneath the skin around exact reference beard follicle roots" },
+];
+
+const FABRIC_PHYSICS: Opt[] = [
+  { id: "seat_hip_creases", ar: "كسرات جلوس حقيقية على جانبي الحوض لقماش الثوب (قامة 195 سم)", en: "organic horizontal tension creases and micro-folds radiating across hips and lap suited for 195cm seated posture" },
+  { id: "collar_tilt_tension", ar: "انحناء خفيف للياقة القلاب المشدودة مع حركة الرقبة أو الحزام", en: "slight organic asymmetric tilt of thobe turnover collar responding naturally to neck rotation and seatbelt tension" },
+  { id: "fabric_weave_macro", ar: "ظهور خيوط نسيج التيترون أو السلك الياباني المنسوج بنعومة فائقة", en: "tactile authentic Japanese cotton-poly blend thobe fabric weave with realistic micro-thread texture" },
+];
+
+const THERMAL_CLIMATE_PHYSICS: Opt[] = [
+  { id: "cup_sweat_droplets", ar: "قطرات ماء متصببة من برودة كوب القهوة الباردة بالكونسول", en: "fine cold drink condensation beads rolling down iced specialty takeaway cup resting in console holder" },
+  { id: "window_ac_fog_spot", ar: "بقعة ضباب دائرية ناعمة على زجاج النافذة من برودة المكيف", en: "faint exterior circular moisture condensation haze on side window caused by cold AC vent hitting outside air" },
+  { id: "engine_heat_mirage", ar: "تموجات سراب حراري طفيفة منبعثة من فتحات كبوت السيارة", en: "faint optical heat shimmer distortion rising off the warm engine hood surface" },
+];
+
+const DAILY_LIFE_CLUTTER: Opt[] = [
+  { id: "charger_12v_glow", ar: "رأس شاحن في مقبس الولاعة بنقطة LED زرقاء خافتة", en: "tiny subtle blue LED glow dot from 12V fast charger plugged into lower center console port" },
+  { id: "rearview_parking_tag", ar: "بطاقة تصريح مواقف بيضاء معلقة بمرآة الرؤية الخلفية", en: "white residential RFID parking permit pass tag hanging from the center rearview mirror stalk" },
+  { id: "door_pocket_keys", ar: "مفاتيح بيت عادية موضوعة بإهمال في جيب الباب السفلي", en: "standard house brass keys and fob resting casually in lower interior door storage pocket" },
+];
+
+const APP_UI_ELEMENTS: Opt[] = [
+  { id: "snap_timestamp", ar: "ساعة السناب الكلاسيكية البيضاء مطبوعة بزاوية الشاشة", en: "Snapchat digital white timestamp overlay faintly visible in upper corner" },
+  { id: "snap_temp_sticker", ar: "ملصق درجة الحرارة (مثل: 42°C أو 18°C) بالخط الأبيض", en: "subtle white weather temperature sticker overlay showing authentic local temperature reading" },
+  { id: "app_compression_filter", ar: "معالجة مستشعر سناب شات الطبيعية (ضغط ألوان الكاميرا داخل التطبيق)", en: "authentic in-app Snapchat camera sensor processing and mild social compression rendering" },
+];
+
+const WINDOW_TINTS: Opt[] = [
+  { id: "tint_medium_02", ar: "تظليل كتم وسط (درجة 02) مع دخول الضوء من الزجاج الأمامي", en: "medium 35% charcoal window tint on side glasses, creating moody contrast with un-tinted windshield light" },
+  { id: "tint_light_01", ar: "تظليل حراري نانوي خفيف (درجة 01) بمسحة زرقاء خافتة", en: "light 50% legal nano-ceramic tint giving subtle cool blue-green hue to interior shadows" },
+  { id: "no_tint_clear", ar: "زجاج شفاف وكالة بدون تظليل (إضاءة كاملة للمقصورة)", en: "clear factory untinted windows with complete ambient daylight illuminating whole cabin" },
+];
+
+const GRIP_MOTION_NUANCES: Opt[] = [
+  { id: "natural_arm_stretch", ar: "أكتاف مائلة طبيعياً مع امتداد ذراع السيلفي الطويل (195 سم)", en: "asymmetric shoulder tilt showing physical strain of 195cm tall arm extending phone at maximum length" },
+  { id: "stray_finger_corner", ar: "طرف خفيف جداً من حافة إصبع السبابة أو كفر الجوال بزاوية الكادر", en: "subtle accidental tip of index finger or matte phone case edge intruding slightly in bottom corner" },
+  { id: "steering_hand_microblur", ar: "اهتزاز حركة بطيء خفيف على اليد الممسكة بالمقود", en: "slight candid micro-motion blur on the off-hand resting on steering wheel while selfie hand stays sharp" },
+];
+
+const DASH_UI_DETAILS: Opt[] = [
+  { id: "ac_dual_temp", ar: "أرقام حرارة التكييف الرقمية (مثل: 20.5°C) مضيئة بالطبلون", en: "glowing digital dual-zone AC climate control numbers illuminated on dashboard console" },
+  { id: "carplay_navigation", ar: "شاشة الكونسول تعرض تطبيق خرائط الملاحة بوضع داكن", en: "in-car infotainment screen displaying subtle blurred dark-mode GPS navigation route" },
+];
+
+const OPTICAL_IMPERFECTIONS: Opt[] = [
+  { id: "catchlight_reflection", ar: "انعكاس وهج شاشة الجوال/السيارة في بؤبؤ العينين العسليتين", en: "organic specular eye catchlight reflecting phone screen and interior cabin dashboard inside warm brown iris" },
+  { id: "oily_lens_glow", ar: "توهج دهني ناعم حول مصادر الضوء (مسحة العدسة بالثوب)", en: "subtle blooming oily lens flare around bright light sources typical of uncleaned phone lenses" },
+  { id: "wide_barrel_distort", ar: "تمدد منظوري خفيف بالأطراف ناتج عن عدسة 24mm العريضة", en: "authentic wide-angle smartphone barrel distortion slightly elongating edges and forearms" },
+  { id: "chroma_shadow_noise", ar: "حبيبات ضوضاء مستشعر الجوال في مناطق الظلال العميقة", en: "subtle smartphone CMOS sensor chroma noise grain in deep cabin shadow zones under steering column" },
+];
+
+const CABIN_DETAILS: Opt[] = [
+  { id: "large_hand_gear", ar: "يد كبيرة تحتضن مقبض القير بعفوية تتناسب مع طول 195 سم", en: "large hand resting naturally on center leather gear shifter suited for 195cm stature" },
+  { id: "tissue_box_console", ar: "علبة مناديل مربعة مستقرة على الكونسول الوسطي", en: "square tissue box casually placed near center console cup holders" },
+  { id: "loose_usb_cable", ar: "كابل شاحن أصلي ملفوف بعفوية قرب فتحات المكيف", en: "loose USB braided charging cable casually snaking near AC air vents" },
+];
+
+const CLOTHES: Cloth[] = [
+  { id: "thobe_white", cat: "تقليدي", ar: "ثوب أبيض مفصل لقامة طويلة (ياقة قلاب)", en: "custom tailored crisp white Saudi thobe fitted for tall broad frame, turnover collar, no headwear" },
+  { id: "thobe_shmagh", cat: "تقليدي", ar: "ثوب أبيض + شماغ أحمر بترسيمة كاجوال + عقال", en: "white tailored thobe + red shemagh casually draped over broad shoulders + black agal" },
+  { id: "thobe_ghutra", cat: "تقليدي", ar: "ثوب أبيض + غترة بيضاء خفيفة + عقال", en: "white tailored thobe + pure white ghutra + agal" },
+  { id: "tee_black_ref", cat: "كاجوال", ar: "تيشيرت أسود فحمي ناعم (مطابق للصورة المرجعية)", en: "washed charcoal black crewneck t-shirt identical to reference photo, fitting lean athletic frame" },
+  { id: "linen_beige", cat: "كاجوال", ar: "قميص كتان بيج صيفي مريح", en: "relaxed beige linen button-down shirt" },
+  { id: "shirt_white_rolled", cat: "كاجوال", ar: "قميص أبيض كاجوال بأكمام مطوية وساعة معصم", en: "white casual shirt with rolled up sleeves showing athletic forearms" },
+  { id: "sport_athletic", cat: "رياضي", ar: "طقم تدريب رياضي أسود عملي", en: "matte black athletic gym shirt fitting tall athletic torso" },
+  { id: "hoodie_gray", cat: "كاجوال", ar: "هودي رمادي فاتح فضفاض", en: "relaxed light heather gray hoodie" },
+];
+
+const STORYLINES: Opt[] = [
+  { id: "traffic_light_stop", ar: "واقف عند إشارة حمراء وزهقان (ابتسامة المرجع الهادئة)", en: "waiting casually at a red traffic light, slight idle boredom, authentic subtle gentle smile matching reference expression" },
+  { id: "fresh_haircut", ar: "ثوب مغسول جديد ومظهر مهندم بنفس شعر ولحية المرجع", en: "crisp clean tailored thobe, sharp clean collar, confident relaxed candid vibe, identical reference hair and facial features" },
+  { id: "family_waiting_idle", ar: "منتظر مشوار بالسيارة والمكيف شغال والمقعد مائل للخلف", en: "waiting parked inside idling car with AC on, driver seat reclined comfortably for 195cm frame" },
+  { id: "late_night_cruising", ar: "سرية خط ليلية ومسكة طريق مفتوح مع فنجان شاي سفري", en: "late night highway cruising, quiet roads, dashboard ambient glow, cup of warm tea on console" },
+  { id: "post_gym_parking", ar: "توه مخلص تمرين في مواقف النادي بعد المغرب", en: "sitting in parking lot right after gym workout, gym outfit, post-training calm fatigue" },
+  { id: "friday_after_prayer", ar: "موقف هادئ بعد صلاة الجمعة وثوب ناصع", en: "right after Friday midday prayer, pristine traditional attire, serene atmosphere" },
+];
+
+const FRAMINGS: Opt[] = [
+  { id: "close_face", ar: "سيلفي شخصي قريب جداً (الوجه والصدر يملآن 80% من الكادر)", en: "intimate front-camera selfie framing where subject's face, neck, and broad chest dominate 80% of frame, background visible only around edges" },
+  { id: "half_body", ar: "سيلفي نصفي طبيعي (الرأس والأكتاف بالمركز، والسيارة كخلفية ثانوية)", en: "classic handheld selfie showing head, neck, and upper torso as central subject; car interior/exterior strictly secondary background" },
+  { id: "wide_outside", ar: "سيلفي ممتد بذراع كامل (الشخص في الصدارة والخلفية تبعاً للزاوية)", en: "arm-extended handheld selfie keeping tall subject in prominent foreground, surroundings captured organically behind without recentering" },
+];
+
+const ASPECTS: Opt[] = [
+  { id: "916", ar: "9:16 ستوري (Snap / Insta / TikTok)", en: "9:16 vertical story format" },
+  { id: "45", ar: "4:5 بوست إنستقرام عمودي", en: "4:5 vertical portrait feed" },
+  { id: "11", ar: "1:1 مربع كلاسيكي", en: "1:1 square" },
+  { id: "169", ar: "16:9 لقطة أفقية عريضة", en: "16:9 cinematic wide selfie" },
+];
+
+const PHONES: Opt[] = [
+  { id: "iphone_16_pro", ar: "iPhone 16 Pro Max (ألوان طبيعية وHDR متوازن)", en: "iPhone 16 Pro Max front camera, natural smart HDR" },
+  { id: "snapchat_cam", ar: "كاميرا سناب شات مباشرة (معالجة التطبيق العادية)", en: "raw Snapchat in-app camera capture with authentic compression" },
+  { id: "xiaomi_15_ultra", ar: "Xiaomi 15 Ultra (نغمات لايكا الطبيعية)", en: "Xiaomi 15 Ultra front cam, Leica authentic tone" },
+  { id: "samsung_s24u", ar: "Samsung S24 Ultra (حدة تفاصيل عالية)", en: "Samsung S24 Ultra front camera" },
+];
+
+const ANGLES: Opt[] = [
+  { id: "eye_level", ar: "مستوى العين المباشر (مثل زاوية الصورة المرجعية)", en: "direct eye-level angle matching reference photo capture angle" },
+  { id: "high_45", ar: "زاوية علوية 45° سيلفي شبابي تقليدي", en: "high 45-degree selfie angle from above" },
+  { id: "chest_low", ar: "منخفضة من الصدر مع ظهور سقف السيارة", en: "low angle from chest height looking slightly up" },
+  { id: "candid_side", ar: "زاوية عفوية جانبية كأن الجوال باليد السفلى", en: "candid off-axis angle from relaxed hand position" },
+];
+
+const CAR_MODELS: Opt[] = [
+  { id: "landcruiser_lc300", ar: "تويوتا لاندكروزر LC300", en: "Toyota Land Cruiser LC300" },
+  { id: "patrol_y62", ar: "نيسان باترول بطل الدروب Y62", en: "Nissan Patrol Y62" },
+  { id: "rr_sport_2017", ar: "Range Rover Sport 2017", en: "2017 Range Rover Sport" },
+  { id: "yukon_denali", ar: "جي إم سي يوكن دينالي", en: "GMC Yukon Denali" },
+  { id: "camry_v6", ar: "تويوتا كامري بيضاء", en: "white Toyota Camry" },
+];
+
+const CAR_COLORS: Opt[] = [
+  { id: "white", ar: "أبيض لؤلؤي", en: "pearl white" },
+  { id: "black", ar: "أسود ميتاليك", en: "metallic black" },
+  { id: "silver", ar: "فضي كلاسيكي", en: "classic silver" },
+  { id: "gray", ar: "رمادي ناردو", en: "cement nardo gray" },
+];
+
+const ACCESSORIES: Opt[] = [
+  { id: "sunglasses_collar", ar: "نظارة شمسية معلقة على ياقة الثوب أو التيشيرت", en: "designer sunglasses hooked onto collar" },
+  { id: "specialty_cup", ar: "كوب ورقي لمقهى مختص باليد", en: "paper takeaway cup from a specialty coffee shop in hand" },
+  { id: "car_key", ar: "مفتاح السيارة معلق بيده أو على الطبلون", en: "car key fob held casually in hand or resting on console" },
+  { id: "luxury_watch", ar: "ساعة يد ستيل فضية بارزة بمعصم السيلفي", en: "steel sports watch visible on selfie wrist" },
+];
+
+const POSES: Opt[] = [
+  { id: "hand_on_wheel", ar: "يد على المقود والأخرى تلتقط السيلفي", en: "one large hand resting atop steering wheel, other snapping selfie" },
+  { id: "arm_out", ar: "سيلفي يد واحدة ممدودة للأمام بعفوية (ذراع طويل)", en: "one long arm extended forward holding phone naturally, wide candid view" },
+  { id: "adjust_collar", ar: "يد تعدل ياقة الثوب بعفوية والأخرى تصور", en: "one hand casually adjusting collar fold, other snapping candid selfie" },
+  { id: "involuntary_snap", ar: "لقطة خاطفة عفوية أثناء الالتفات لنافذة السيارة", en: "involuntary mid-motion candid snap turning toward car window, authentic unposed feel" },
+];
+
+const ANTI_AI_BLOCKLIST = [
+  "cinematic lighting", "studio lighting", "professional photoshoot", "magazine cover",
+  "8k resolution", "unreal engine", "octane render", "airbrushed skin", "plastic skin",
+  "perfect porcelain face", "symmetrical face", "model posing", "clean asphalt",
+  "changing facial features", "altering hair density", "altering beard density",
+  "thicker beard than reference", "fuller beard than reference", "patchy beard",
+  "shaved beard", "buzz cut", "curly afro hair", "long hair", "anime style", "illustration",
+  "wide angle landscape showing whole car", "car commercial framing", "full vehicle centered",
+  "subject pushed to background", "distorted face proportions"
+];
+
+const PRESET_MOODS: PresetMood[] = [
+  {
+    id: "ref_authentic_car",
+    title: "مود المرجع الأساسي بالسيارة",
+    badge: "⭐ مطابق 100%",
+    icon: "👤",
+    desc: "مطابقة تامة لوجه المرجع وتيشيرته الأسود داخل السيارة كخلفية ثانوية مع إنارة أعمدة الصوديوم الدافئة.",
+    data: {
+      locId: 2, carModelId: "landcruiser_lc300", carColorId: "white",
+      clothId: "tee_black_ref", accessoryId: "sunglasses_collar", poseId: "hand_on_wheel",
+      lightId: "sodium_street",
+      storylineId: "traffic_light_stop", tintId: "tint_medium_02",
+      anatomicalExprId: "ref_warm_smile", heightCueId: "headrest_max",
+      hairId: "ref_signature_tousled", beardId: "ref_signature_beard",
+      subsurfaceIds: ["ear_cartilage_glow", "beard_follicle_shadow"],
+      fabricIds: ["seat_hip_creases"],
+      thermalIds: ["cup_sweat_droplets"],
+      clutterIds: ["charger_12v_glow"],
+      appUiIds: ["app_compression_filter"],
+      gripMotionIds: ["natural_arm_stretch"],
+      dashUiIds: ["ac_dual_temp"],
+      opticalIds: ["catchlight_reflection"],
+      cabinIds: ["tissue_box_console", "large_hand_gear"],
+      skinNuanceIds: ["ref_freckles_moles", "stray_beard_hairs"],
+    }
+  },
+  {
+    id: "subsurface_noon_snap",
+    title: "سيلفي الظهيرة وفيزياء الحرارة",
+    badge: "☀️ صيف نجد",
+    icon: "🔥",
+    desc: "ثوب أبيض ناصع مع شمس ظهيرة حادة وارتداد ضوئي على الفك وتوهج غضروف الأذن والسيارة محيط عفوي.",
+    data: {
+      locId: 5, carModelId: "landcruiser_lc300", carColorId: "white",
+      clothId: "thobe_white", accessoryId: "sunglasses_collar", poseId: "hand_on_wheel",
+      lightId: "harsh_noon",
+      storylineId: "family_waiting_idle", tintId: "tint_medium_02",
+      anatomicalExprId: "sun_squint_lines", heightCueId: "headrest_max",
+      hairId: "ref_signature_tousled", beardId: "ref_signature_beard",
+      subsurfaceIds: ["ear_cartilage_glow", "thobe_jaw_bounce", "beard_follicle_shadow"],
+      fabricIds: ["seat_hip_creases", "collar_tilt_tension", "fabric_weave_macro"],
+      thermalIds: ["cup_sweat_droplets", "engine_heat_mirage"],
+      clutterIds: ["charger_12v_glow", "rearview_parking_tag"],
+      appUiIds: ["snap_temp_sticker", "app_compression_filter"],
+      gripMotionIds: ["natural_arm_stretch"],
+      dashUiIds: ["ac_dual_temp"],
+      opticalIds: ["catchlight_reflection", "chroma_shadow_noise"],
+      cabinIds: ["tissue_box_console", "large_hand_gear"],
+      skinNuanceIds: ["t_zone_sheen", "wrist_vein_athletic", "ref_freckles_moles"],
+    }
+  },
+  {
+    id: "friday_formal",
+    title: "كشخة الجمعة الرسمية",
+    badge: "🕌 ثوب وشماغ",
+    icon: "✨",
+    desc: "تركيز كامل على الوجه المبتسم والشماغ المكوي بدقة وشمس الصباح الذهبية الناعمة.",
+    data: {
+      locId: 13, carModelId: "landcruiser_lc300", carColorId: "black",
+      clothId: "thobe_shmagh", accessoryId: "luxury_watch", poseId: "adjust_collar",
+      lightId: "soft_morning",
+      storylineId: "friday_after_prayer", tintId: "tint_light_01",
+      anatomicalExprId: "ref_warm_smile", heightCueId: "tall_roofline",
+      hairId: "covered_traditional", beardId: "ref_fresh_trimmed_neat",
+      subsurfaceIds: ["thobe_jaw_bounce"],
+      fabricIds: ["fabric_weave_macro"],
+      thermalIds: [],
+      clutterIds: ["rearview_parking_tag"],
+      appUiIds: [],
+      gripMotionIds: ["natural_arm_stretch"],
+      dashUiIds: [],
+      opticalIds: ["catchlight_reflection", "wide_barrel_distort"],
+      cabinIds: ["large_hand_gear"],
+      skinNuanceIds: ["stray_beard_hairs", "ref_freckles_moles"],
+    }
+  }
+];
+
+interface BuildInput {
+  loc: Loc; carModel: Opt; carColor: Opt; cloth: Cloth;
+  accessory: Opt; pose: Opt; anatomicalExpr: Opt; frame: Opt; aspect: Opt;
+  phone: Opt; angle: Opt; light: Opt; beard: Opt; hair: Opt; heightCue: Opt;
+  storyline: Opt; tint: Opt;
+  opticals: Opt[]; cabins: Opt[]; skinNuances: Opt[];
+  appUis: Opt[]; gripMotions: Opt[]; dashUis: Opt[];
+  subsurfaces: Opt[]; fabrics: Opt[]; thermals: Opt[]; clutters: Opt[];
+}
+
+function joinAr(list: Opt[], fallback = "طبيعي"): string {
+  return list.length ? list.map(o => o.ar).join("، ") : fallback;
+}
+function joinEn(list: Opt[], fallback = "none"): string {
+  return list.length ? list.map(o => o.en).join(", ") : fallback;
+}
+
+function buildPrompt(i: BuildInput): { ar: string; en: string } {
+  const ar = `👑 القاعدة الأساسية الصارمة للكادر (Subject-First Rule):
+الشخص المرجعي بالصورة المرفقة هو "أساس وبطل التصوير السيلفي" والمسيطر الأكبر على الكادر (يملأ 80% من مساحة الصورة بالمقدمة). أي عنصر آخر (السيارة، الديكور، الشارع، المباني) هو عنصر ثانوي يظهر في الخلفية فقط إذا سمحت زاوية واتجاه يد السيلفي الطبيعية، ولا يتم إبعاد الكاميرا لإظهار كامل السيارة أو محاكاة إعلان تجاري.
+
+🔒 قفل الملامح والكثافة 100%:
+ممنوع منعاً باتاً تغيير ملامح الوجه أو بنية العظام، وممنوع قطعياً تغيير كثافة أو سمك شعر الرأس الأصلي، وممنوع تغيير كثافة أو شكل اللحية والشارب الأصلية. استخدام نفس الوجه 1:1 بدقة فائقة.
+
+👤 مواصفات الشخص المرجعي (بطل الصورة المهيمن):
+- الهوية: نفس ملامح وعيني وشخصية الشاب بالصورة المرجعية بدقة 100%.
+- القامة والبنية: فارع الطول (195 سم) ووزن (88 كجم) ذو بنية رياضية ممشوقة وأكتاف عريضة تملأ أسفل الكادر.
+- تسريحة الشعر (بنفس الكثافة والسمك الأصلي): ${i.hair.ar}.
+- شكل وتنسيق اللحية (بنفس الكثافة والشارب الأصلي): ${i.beard.ar}.
+- التعبير العضلي والتشريحي الحقيقي: ${i.anatomicalExpr.ar}.
+- تفاصيل البشرة والنسيج الحيوي: ${joinAr(i.skinNuances)}.
+- تناسق الطول الفارع وتأثيره: ${i.heightCue.ar}.
+
+📷 تأطير السيلفي والكاميرا:
+- التأطير المباشر: ${i.frame.ar}.
+- الكاميرا: تم الالتقاط بواسطة (${i.phone.ar})، زاوية (${i.angle.ar}) ممسوكة بيد الشخص على مسافة ذراع واحدة.
+- الوضعية وحركة اليد: ${i.pose.ar}.
+- تأثيرات العدسة ومستشعر الهاتف: ${joinAr(i.opticals)}.
+- تفاعل قبضة اليد والاهتزاز الطبيعي: ${joinAr(i.gripMotions)}.
+
+👔 مظهر الشخص وإكسسواراته:
+- الملابس والمظهر: ${i.cloth.ar}.
+- تفاصيل وإكسسوارات شخصية: ${i.accessory.ar}.
+- فيزياء تشتت الضوء تحت جلد الوجه: ${joinAr(i.subsurfaces)}.
+- فيزياء نسيج وتجاعيد الملابس: ${joinAr(i.fabrics)}.
+
+📖 سياق القصة والسبب العفوي للصورة: ${i.storyline.ar}.
+📱 محاكاة تطبيقات التواصل وشاشة السناب: ${joinAr(i.appUis)}.
+
+💡 هندسة الإضاءة والإنارة المختارة (مفصولة ومحددة):
+- نوع ومصدر الإنارة الأساسي: ${i.light.ar}.
+
+🚗 العناصر الثانوية المحيطة (تظهر بالخلفية فقط إذا سمحت زاوية السيلفي):
+- المكان المحايد (بدون معالم): ${i.loc.ar}.
+- وضعية التواجد: ${i.loc.zone === "inside" ? "جالس في مقعد السائق داخل مقصورة (" + i.carModel.ar + " لون " + i.carColor.ar + ") - تظهر أجزاء الكابينة بعفوية خلفه وحوله" : "واقف بجانب (" + i.carModel.ar + " لون " + i.carColor.ar + ") وتظهر أجزاء منها بالخلفية فقط"}.
+- تفاصيل الكابينة والكونسول (خلفية ثانوية): ${joinAr(i.cabins)}.
+- فيزياء تظليل النوافذ والضوء: ${i.tint.ar}.
+- شاشات الطبلون (إذا سمحت الزاوية برؤيتها خلف يده): ${joinAr(i.dashUis)}.
+- فوضى مقصورة السيارة المحيطة: ${joinAr(i.clutters)}.
+- فيزياء الطقس والمناخ المجهري: ${joinAr(i.thermals)}.
+
+🚫 ممنوعات قطعية: ${ANTI_AI_BLOCKLIST.join("، ")}.
+📐 أبعاد الصورة: ${i.aspect.ar}.`;
+
+  const en = `👑 MASTER COMPOSITION MANDATE: SUBJECT-FIRST SELFIE HIERARCHY
+The reference person is the ABSOLUTE PRIMARY SUBJECT and dominant focal point of the image, occupying 75% to 85% of the frame as a realistic close/medium smartphone selfie held at arm's length.
+ANY OTHER ELEMENT (the vehicle, steering wheel, dashboard, street, buildings) is strictly INCIDENTAL & SECONDARY BACKGROUND, visible ONLY if and where the organic selfie arm angle naturally permits. NEVER zoom out to show the whole car, NEVER center the vehicle, NEVER frame like an automotive commercial. The man is the photo; the rest is just where he happens to be.
+
+🔒 STRICT IDENTITY & BIOMETRIC DENSITY LOCK:
+Strictly MANDATORY to replicate the exact facial structure, eye shape, and bone identity from the attached reference photo 1:1. Absolutely FORBIDDEN to alter the natural density, thickness, or temple hairline of the head hair. Absolutely FORBIDDEN to alter the density, thickness, or grooming contours of the signature beard and mustache.
+
+👤 Dominant Subject Parameters:
+- Identity: Exact Middle Eastern / Saudi man from attached reference photo.
+- Stature & Physique: 195 cm (6'5"), 88 kg, lean athletic aesthetic build, broad shoulders framing the lower composition.
+- Hair Flow & Styling (PRESERVING EXACT REFERENCE DENSITY): ${i.hair.en}.
+- Beard Grooming (PRESERVING EXACT REFERENCE DENSITY & SHAPE): ${i.beard.en}.
+- Anatomical Facial Dynamics: ${i.anatomicalExpr.en}.
+- Micro-Dermal Realism: ${joinEn(i.skinNuances)}.
+- 195cm Scale Nuances: ${i.heightCue.en}.
+
+📷 Selfie Camera & Optical Profile:
+- Framing Priority: ${i.frame.en}.
+- Capture Device: Shot on (${i.phone.en}) front camera, angle: (${i.angle.en}) held at natural arm distance.
+- Pose & Grip Dynamics: ${i.pose.en}.
+- Lens & CMOS Sensor Imperfections: ${joinEn(i.opticals)}.
+- Biomechanical Grip & Natural Drift: ${joinEn(i.gripMotions)}.
+
+👔 Attire & Personal Details:
+- Outfit: ${i.cloth.en}.
+- Carried Accessories: ${i.accessory.en}.
+- Subsurface Facial Translucency: ${joinEn(i.subsurfaces)}.
+- Textile Tension & Natural Creases: ${joinEn(i.fabrics)}.
+
+📖 Candid Context & Storyline: ${i.storyline.en}.
+📱 Social App & Snapchat UI: ${joinEn(i.appUis)}.
+
+💡 Standalone Lighting & Illumination Setup:
+- Primary Source & Ambiance: ${i.light.en}.
+
+🚗 Incidental Vehicle & Background (Visible ONLY as Secondary Context):
+- Generic Local Setting (No landmarks): ${i.loc.en}.
+- Position Context: ${i.loc.zone === "inside" ? "sitting in driver seat of (" + i.carModel.en + " in " + i.carColor.en + "), cabin elements visible organically around his shoulders and head" : "standing outside beside (" + i.carModel.en + " in " + i.carColor.en + "), vehicle visible only in background behind subject"}.
+- Secondary Cabin Elements: ${joinEn(i.cabins)}.
+- Window Tinting Physics: ${i.tint.en}.
+- Dashboard Display Details (only if visible under arm): ${joinEn(i.dashUis)}.
+- Ambient Daily Clutter: ${joinEn(i.clutters)}.
+- Thermal & Atmospheric Physics: ${joinEn(i.thermals)}.
+
+🚫 STRICT FORBIDDEN LIST: ${ANTI_AI_BLOCKLIST.join(", ")}.
+📐 Target Aspect Ratio: ${i.aspect.en}.`;
+
+  return { ar, en };
+}
+
+const STORAGE_KEY = "selfie-prompt-studio-v9.5";
+
+interface StoredState {
+  locId?: number; carModelId?: string; carColorId?: string; clothId?: string;
+  accessoryId?: string; poseId?: string; anatomicalExprId?: string; frameId?: string; aspectId?: string;
+  phoneId?: string; angleId?: string; lightId?: string; beardId?: string; hairId?: string; heightCueId?: string;
+  storylineId?: string; tintId?: string; opticalIds?: string[]; cabinIds?: string[]; skinNuanceIds?: string[];
+  appUiIds?: string[]; gripMotionIds?: string[]; dashUiIds?: string[]; subsurfaceIds?: string[]; fabricIds?: string[];
+  thermalIds?: string[]; clutterIds?: string[]; lang?: Lang; darkMode?: boolean; sessions?: SavedSession[];
+}
+
+function loadInitialState(): StoredState {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveStored(s: StoredState) {
+  try {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    }
+  } catch {}
+}
+
+export default function App() {
+  const initial = useRef(loadInitialState()).current;
+
+  const [tab, setTab] = useState<Tab>("gen");
+  const [activeStep, setActiveStep] = useState<StepCategory>("background");
+  const [darkMode, setDarkMode] = useState(initial.darkMode ?? true);
+  const [lang, setLang] = useState<Lang>(initial.lang ?? "both");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // إعدادات المرجع الأساسية (مقفولة الكثافة)
+  const [beardId, setBeardId] = useState(initial.beardId ?? "ref_signature_beard");
+  const [hairId, setHairId] = useState(initial.hairId ?? "ref_signature_tousled");
+  const [anatomicalExprId, setAnatomicalExprId] = useState(initial.anatomicalExprId ?? "ref_warm_smile");
+  const [heightCueId, setHeightCueId] = useState(initial.heightCueId ?? "headrest_max");
+
+  // الكاميرا والتأطير
+  const [frameId, setFrameId] = useState(initial.frameId ?? "close_face");
+  const [aspectId, setAspectId] = useState(initial.aspectId ?? "916");
+  const [phoneId, setPhoneId] = useState(initial.phoneId ?? "iphone_16_pro");
+  const [angleId, setAngleId] = useState(initial.angleId ?? "eye_level");
+  const [poseId, setPoseId] = useState(initial.poseId ?? "hand_on_wheel");
+
+  // المظهر والسياق
+  const [clothId, setClothId] = useState(initial.clothId ?? "tee_black_ref");
+  const [accessoryId, setAccessoryId] = useState(initial.accessoryId ?? "sunglasses_collar");
+  const [storylineId, setStorylineId] = useState(initial.storylineId ?? "traffic_light_stop");
+
+  // الخلفية المحيطة والسيارة (40 مكاناً + إنارة مستقلة)
+  const [locId, setLocId] = useState<number>(initial.locId ?? 2);
+  const [locZoneFilter, setLocZoneFilter] = useState<"all" | "inside" | "outside">("all");
+  const [locSearch, setLocSearch] = useState("");
+  const [lightId, setLightId] = useState(initial.lightId ?? "sodium_street");
+  const [carModelId, setCarModelId] = useState(initial.carModelId ?? "landcruiser_lc300");
+  const [carColorId, setCarColorId] = useState(initial.carColorId ?? "white");
+  const [tintId, setTintId] = useState(initial.tintId ?? "tint_medium_02");
+
+  // الفيزياء الدقيقة
+  const [skinNuanceIds, setSkinNuanceIds] = useState<string[]>(initial.skinNuanceIds ?? ["ref_freckles_moles", "stray_beard_hairs"]);
+  const [subsurfaceIds, setSubsurfaceIds] = useState<string[]>(initial.subsurfaceIds ?? ["thobe_jaw_bounce", "ear_cartilage_glow"]);
+  const [fabricIds, setFabricIds] = useState<string[]>(initial.fabricIds ?? ["seat_hip_creases"]);
+  const [thermalIds, setThermalIds] = useState<string[]>(initial.thermalIds ?? ["cup_sweat_droplets"]);
+  const [appUiIds, setAppUiIds] = useState<string[]>(initial.appUiIds ?? ["app_compression_filter"]);
+  const [gripMotionIds, setGripMotionIds] = useState<string[]>(initial.gripMotionIds ?? ["natural_arm_stretch"]);
+  const [opticalIds, setOpticalIds] = useState<string[]>(initial.opticalIds ?? ["catchlight_reflection"]);
+  const [cabinIds, setCabinIds] = useState<string[]>(initial.cabinIds ?? ["large_hand_gear", "tissue_box_console"]);
+  const [dashUiIds, setDashUiIds] = useState<string[]>(initial.dashUiIds ?? ["ac_dual_temp"]);
+  const [clutterIds, setClutterIds] = useState<string[]>(initial.clutterIds ?? ["charger_12v_glow"]);
+
+  const [sessions, setSessions] = useState<SavedSession[]>(initial.sessions ?? []);
+  const [sessionName, setSessionName] = useState("");
+
+  /* Gemini Flash States */
+  const [isGeminiLoading, setIsGeminiLoading] = useState(false);
+  const [geminiResult, setGeminiResult] = useState<string | null>(null);
+  const [geminiType, setGeminiType] = useState<"optimize" | "scenario" | null>(null);
+
+  useEffect(() => {
+    saveStored({
+      locId, carModelId, carColorId, clothId, accessoryId, poseId,
+      anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
+      beardId, hairId, heightCueId, storylineId, tintId,
+      opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds, dashUiIds,
+      subsurfaceIds, fabricIds, thermalIds, clutterIds, lang, darkMode, sessions
+    });
+  }, [locId, carModelId, carColorId, clothId, accessoryId, poseId,
+      anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
+      beardId, hairId, heightCueId, storylineId, tintId,
+      opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds, dashUiIds,
+      subsurfaceIds, fabricIds, thermalIds, clutterIds, lang, darkMode, sessions]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const beard = BEARD_STYLES.find(b => b.id === beardId) ?? BEARD_STYLES[0];
+  const hair = HAIR_STYLES.find(h => h.id === hairId) ?? HAIR_STYLES[0];
+  const heightCue = HEIGHT_CUES.find(h => h.id === heightCueId) ?? HEIGHT_CUES[0];
+  const anatomicalExpr = ANATOMICAL_EXPRESSIONS.find(e => e.id === anatomicalExprId) ?? ANATOMICAL_EXPRESSIONS[0];
+  const storyline = STORYLINES.find(s => s.id === storylineId) ?? STORYLINES[0];
+  const tint = WINDOW_TINTS.find(t => t.id === tintId) ?? WINDOW_TINTS[0];
+
+  const loc = LOCATIONS.find(l => l.id === locId) ?? LOCATIONS[0];
+  const light = LIGHTING_OPTIONS.find(l => l.id === lightId) ?? LIGHTING_OPTIONS[0];
+  const carModel = CAR_MODELS.find(c => c.id === carModelId) ?? CAR_MODELS[0];
+  const carColor = CAR_COLORS.find(c => c.id === carColorId) ?? CAR_COLORS[0];
+  const cloth = CLOTHES.find(c => c.id === clothId) ?? CLOTHES[0];
+  const accessory = ACCESSORIES.find(a => a.id === accessoryId) ?? ACCESSORIES[0];
+  const pose = POSES.find(p => p.id === poseId) ?? POSES[0];
+  const frame = FRAMINGS.find(f => f.id === frameId) ?? FRAMINGS[0];
+  const aspect = ASPECTS.find(a => a.id === aspectId) ?? ASPECTS[0];
+  const phone = PHONES.find(p => p.id === phoneId) ?? PHONES[0];
+  const angle = ANGLES.find(a => a.id === angleId) ?? ANGLES[0];
+
+  const opticals = OPTICAL_IMPERFECTIONS.filter(e => opticalIds.includes(e.id));
+  const cabins = CABIN_DETAILS.filter(e => cabinIds.includes(e.id));
+  const skinNuances = SKIN_NUANCES.filter(e => skinNuanceIds.includes(e.id));
+  const appUis = APP_UI_ELEMENTS.filter(e => appUiIds.includes(e.id));
+  const gripMotions = GRIP_MOTION_NUANCES.filter(e => gripMotionIds.includes(e.id));
+  const dashUis = DASH_UI_DETAILS.filter(e => dashUiIds.includes(e.id));
+  const subsurfaces = SUBSURFACE_PHYSICS.filter(s => subsurfaceIds.includes(s.id));
+  const fabrics = FABRIC_PHYSICS.filter(f => fabricIds.includes(f.id));
+  const thermals = THERMAL_CLIMATE_PHYSICS.filter(t => thermalIds.includes(t.id));
+  const clutters = DAILY_LIFE_CLUTTER.filter(c => clutterIds.includes(c.id));
+
+  const prompt = useMemo(
+    () => buildPrompt({
+      loc, carModel, carColor, cloth, accessory, pose,
+      anatomicalExpr, frame, aspect, phone, angle, light,
+      beard, hair, heightCue, storyline, tint,
+      opticals, cabins, skinNuances, appUis, gripMotions, dashUis,
+      subsurfaces, fabrics, thermals, clutters
+    }),
+    [loc, carModel, carColor, cloth, accessory, pose,
+     anatomicalExpr, frame, aspect, phone, angle, light,
+     beard, hair, heightCue, storyline, tint,
+     opticals, cabins, skinNuances, appUis, gripMotions, dashUis,
+     subsurfaces, fabrics, thermals, clutters]
+  );
+
+  const toggle = (id: string, list: string[], setter: React.Dispatch<React.SetStateAction<string[]>>) =>
+    setter(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+
+  const copy = async (text: string, tag: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(tag === "ar" ? "✓ تم نسخ البرومبت بالعربية" : tag === "en" ? "✓ Copied English Prompt" : "✓ تم نسخ البرومبت الكامل");
+    } catch {
+      showToast("⚠️ تعذر النسخ إلى الحافظة");
+    }
+  };
+
+  const callGeminiFlash = async (action: "optimize" | "scenario") => {
+    setIsGeminiLoading(true);
+    setGeminiType(action);
+    setGeminiResult(null);
+
+    const apiKey = "";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+    let systemInstruction = "";
+    let userPrompt = "";
+
+    if (action === "optimize") {
+      systemInstruction = `أنت كبير مهندسي الأوامر (Prompt Engineering Director) وخبير تصوير سيلفي واقعي في السعودية.
+مهمتك: مراجعة البرومبت المدخل، وتدقيقه لضمان:
+1. الشخص المرجعي (195 سم، 88 كجم) يسيطر على 80% من الكادر كسيلفي أصيل.
+2. حظر أي تغيير لكثافة شعر الرأس أو شكل اللحية الأصلية.
+3. التأكد من فصل المكان عن الإضاءة المختارة وتناسق سقوط الضوء على ملامح الوجه وثوب الشخص.
+4. التخلص من أي مفردات دعائية مصطنعة (Anti-AI Slop).`;
+      userPrompt = `قم بفحص وتحسين هذا البرومبت ليكون بأعلى درجات الواقعية المفرطة:\n\n${prompt.en}`;
+    } else {
+      systemInstruction = `أنت خبير تصوير ومبتكر سيناريوهات سيلفي عفوية في السعودية.
+مهمتك: اقتراح سيناريو سيلفي عفوي ومبتكر من قلب الحياة اليومية للشباب السعودي لشاب فارع الطول (195 سم / 88 كجم) بنفس شعر ولحية المرجع.
+اكتب السيناريو بأسلوب بصري دقيق يوضح المكان والإضاءة المستقلة مع الصياغة الإنجليزية الجاهزة للاستخدام.`;
+      userPrompt = `اقترح لي سيناريو سيلفي جديد وعفوي جداً مع توضيح نوع الإنارة المستقلة والمكان.`;
+    }
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: userPrompt }] }],
+          systemInstruction: { parts: [{ text: systemInstruction }] }
+        })
+      });
+
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        setGeminiResult(text);
+        showToast(action === "optimize" ? "✓ تم تحسين البرومبت بنجاح عبر Gemini 3 Flash" : "✓ تم توليد سيناريو عفوي جديد");
+      } else {
+        setGeminiResult("عذراً، لم نتمكن من الحصول على استجابة فورية. يرجى إعادة المحاولة.");
+      }
+    } catch {
+      setGeminiResult("حدث خطأ أثناء الاتصال بنموذج Gemini. تأكد من اتصال الإنترنت.");
+    } finally {
+      setIsGeminiLoading(false);
+    }
+  };
+
+  const applyPreset = (preset: PresetMood) => {
+    const d = preset.data;
+    if (d.locId !== undefined) setLocId(d.locId);
+    if (d.carModelId) setCarModelId(d.carModelId);
+    if (d.carColorId) setCarColorId(d.carColorId);
+    if (d.clothId) setClothId(d.clothId);
+    if (d.accessoryId) setAccessoryId(d.accessoryId);
+    if (d.poseId) setPoseId(d.poseId);
+    if (d.lightId) setLightId(d.lightId);
+    if (d.storylineId) setStorylineId(d.storylineId);
+    if (d.tintId) setTintId(d.tintId);
+    if (d.anatomicalExprId) setAnatomicalExprId(d.anatomicalExprId);
+    if (d.heightCueId) setHeightCueId(d.heightCueId);
+    if (d.hairId) setHairId(d.hairId);
+    if (d.beardId) setBeardId(d.beardId);
+    if (d.opticalIds) setOpticalIds(d.opticalIds);
+    if (d.cabinIds) setCabinIds(d.cabinIds);
+    if (d.skinNuanceIds) setSkinNuanceIds(d.skinNuanceIds);
+    if (d.appUiIds) setAppUiIds(d.appUiIds);
+    if (d.gripMotionIds) setGripMotionIds(d.gripMotionIds);
+    if (d.dashUiIds) setDashUiIds(d.dashUiIds);
+    if (d.subsurfaceIds) setSubsurfaceIds(d.subsurfaceIds);
+    if (d.fabricIds) setFabricIds(d.fabricIds);
+    if (d.thermalIds) setThermalIds(d.thermalIds);
+    if (d.clutterIds) setClutterIds(d.clutterIds);
+    setTab("gen");
+    showToast(`✓ تم تفعيل سيناريو: ${preset.title}`);
+  };
+
+  const saveSession = () => {
+    const name = sessionName.trim() || `سيلفي — ${loc.ar.slice(0, 15)}... (${new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })})`;
+    const s: SavedSession = {
+      id: Date.now().toString(), name, createdAt: Date.now(), fav: false,
+      data: {
+        locId, carModelId, carColorId, clothId, accessoryId, poseId,
+        anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
+        beardId, hairId, heightCueId, storylineId, tintId,
+        opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds, dashUiIds,
+        subsurfaceIds, fabricIds, thermalIds, clutterIds
+      },
+    };
+    setSessions(p => [s, ...p].slice(0, 30));
+    setSessionName("");
+    showToast("✓ تم حفظ الجلسة بنجاح");
+  };
+
+  const loadSession = (s: SavedSession) => {
+    const d = s.data as Record<string, any>;
+    if (d.locId) setLocId(d.locId);
+    if (d.carModelId) setCarModelId(d.carModelId);
+    if (d.carColorId) setCarColorId(d.carColorId);
+    if (d.clothId) setClothId(d.clothId);
+    if (d.accessoryId) setAccessoryId(d.accessoryId);
+    if (d.poseId) setPoseId(d.poseId);
+    if (d.storylineId) setStorylineId(d.storylineId);
+    if (d.tintId) setTintId(d.tintId);
+    if (d.anatomicalExprId) setAnatomicalExprId(d.anatomicalExprId);
+    if (d.frameId) setFrameId(d.frameId);
+    if (d.aspectId) setAspectId(d.aspectId);
+    if (d.phoneId) setPhoneId(d.phoneId);
+    if (d.angleId) setAngleId(d.angleId);
+    if (d.lightId) setLightId(d.lightId);
+    if (d.beardId) setBeardId(d.beardId);
+    if (d.hairId) setHairId(d.hairId);
+    if (d.heightCueId) setHeightCueId(d.heightCueId);
+    if (d.opticalIds) setOpticalIds(d.opticalIds);
+    if (d.cabinIds) setCabinIds(d.cabinIds);
+    if (d.skinNuanceIds) setSkinNuanceIds(d.skinNuanceIds);
+    if (d.appUiIds) setAppUiIds(d.appUiIds);
+    if (d.gripMotionIds) setGripMotionIds(d.gripMotionIds);
+    if (d.dashUiIds) setDashUiIds(d.dashUiIds);
+    if (d.subsurfaceIds) setSubsurfaceIds(d.subsurfaceIds);
+    if (d.fabricIds) setFabricIds(d.fabricIds);
+    if (d.thermalIds) setThermalIds(d.thermalIds);
+    if (d.clutterIds) setClutterIds(d.clutterIds);
+    setTab("gen");
+    showToast(`✓ تم استرجاع: ${s.name}`);
+  };
+
+  // فلترة الأماكن الـ 40
+  const filteredLocs = LOCATIONS.filter(l => {
+    const matchesZone = locZoneFilter === "all" || l.zone === locZoneFilter;
+    const matchesSearch = !locSearch || l.ar.includes(locSearch) || l.en.toLowerCase().includes(locSearch.toLowerCase());
+    return matchesZone && matchesSearch;
+  });
+
+  const bg = darkMode ? "bg-zinc-950 text-zinc-100" : "bg-zinc-50 text-zinc-900";
+  const card = darkMode ? "bg-zinc-900/90 border-zinc-800 backdrop-blur-md" : "bg-white border-zinc-200/90 shadow-sm";
+  const itemBg = darkMode ? "bg-zinc-800/80 hover:bg-zinc-800 text-zinc-200" : "bg-zinc-100 hover:bg-zinc-200/80 text-zinc-800";
+  const borderTone = darkMode ? "border-zinc-800" : "border-zinc-200";
+
+  return (
+    <div className={`min-h-screen ${bg} font-sans antialiased pb-28`} dir="rtl">
+      {toastMessage && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white text-xs md:text-sm font-semibold px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-emerald-400/30 animate-bounce">
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* الرأس المحترف */}
+      <header className={`sticky top-0 z-40 border-b ${borderTone} ${darkMode ? "bg-zinc-950/80" : "bg-white/80"} backdrop-blur-md`}>
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-indigo-500 flex items-center justify-center text-white font-black text-base shadow-lg shadow-emerald-500/20">
+              ⚡
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm md:text-base font-extrabold tracking-tight">SELFIE PROMPT STUDIO</h1>
+                <span className="text-[10px] bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1">
+                  <span>✦</span> 40 مكان + إنارة مستقلة
+                </span>
+              </div>
+              <p className="text-[11px] opacity-60">الشخص المرجعي أولاً (80%) · أماكن واقعية بدون معالم</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-xl text-xs border ${borderTone} transition ${itemBg}`}
+              title={darkMode ? "الوضع الفاتح" : "الوضع الليلي"}
+            >
+              {darkMode ? "☀️" : "🌙"}
+            </button>
+          </div>
+        </div>
+
+        {/* التبويبات */}
+        <div className="max-w-4xl mx-auto px-4 pb-2 flex gap-1.5 overflow-x-auto text-xs">
+          {[
+            { id: "gen", label: "🎯 الاستوديو الذكي" },
+            { id: "presets", label: "⚡ سيناريوهات جاهزة" },
+            { id: "sessions", label: `💾 جلساتي (${sessions.length})` },
+            { id: "guide", label: "📖 قاعدة السيلفي الذهبية" },
+            { id: "about", label: "ℹ️ مواصفات المرجع" },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id as Tab)}
+              className={`px-3.5 py-1.5 rounded-xl font-semibold whitespace-nowrap transition text-xs ${
+                tab === t.id
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                  : `${itemBg} opacity-80 hover:opacity-100`
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 mt-4 space-y-4">
+        {tab === "gen" && (
+          <>
+            {/* بطاقة القاعدة الذهبية */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/80 via-zinc-900 to-indigo-950/60 border border-emerald-500/30 p-3.5 md:p-4 text-xs">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="font-bold text-emerald-400 text-xs">القاعدة الذهبية: بطل السيلفي أولاً (80%)</span>
+                </div>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-mono">
+                  195cm / 88kg Locked
+                </span>
+              </div>
+              <p className="opacity-80 text-[11px] leading-relaxed">
+                الشخص المرجعي بملامحه وشعره ولحيته الأصلية يملأ 80% من الكادر. المكان والسيارة خلفية ثانوية عفوية بدون معالم، مع تحكم كامل بنوع الإضاءة بشكل منفصل تماماً.
+              </p>
+            </div>
+
+            {/* أدوات Gemini 3 Flash */}
+            <div className={`${card} border border-indigo-500/30 rounded-2xl p-3 md:p-4 space-y-2.5 bg-gradient-to-b from-indigo-950/20 to-transparent`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-indigo-400 text-base">✨</span>
+                  <h3 className="font-bold text-xs md:text-sm text-indigo-300">مساعد Gemini 3 Flash الحي (AI Co-Pilot)</h3>
+                </div>
+                <span className="text-[10px] text-zinc-400 font-mono">Flash Preview</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  onClick={() => callGeminiFlash("optimize")}
+                  disabled={isGeminiLoading}
+                  className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-md shadow-indigo-900/30 disabled:opacity-50"
+                >
+                  {isGeminiLoading && geminiType === "optimize" ? <span className="animate-spin text-sm">⏳</span> : <span>🔍</span>}
+                  <span>فحص وتحسين البرومبت والإنارة</span>
+                </button>
+
+                <button
+                  onClick={() => callGeminiFlash("scenario")}
+                  disabled={isGeminiLoading}
+                  className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-md shadow-teal-900/30 disabled:opacity-50"
+                >
+                  {isGeminiLoading && geminiType === "scenario" ? <span className="animate-spin text-sm">⏳</span> : <span>🎲</span>}
+                  <span>توليد سيناريو عفوي مبتكر (Flash Idea)</span>
+                </button>
+              </div>
+
+              {geminiResult && (
+                <div className="mt-3 p-3.5 rounded-xl bg-zinc-950/80 border border-indigo-500/30 space-y-2 animate-fadeIn text-xs leading-relaxed">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-indigo-300 flex items-center gap-1.5">
+                      <span>💡</span>
+                      {geminiType === "optimize" ? "نتيجة فحص وتدقيق البرومبت:" : "السيناريو المقترح:"}
+                    </span>
+                    <button
+                      onClick={() => copy(geminiResult, "ai")}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition"
+                    >
+                      نسخ نتيجة AI
+                    </button>
+                  </div>
+                  <pre className="whitespace-pre-wrap font-mono text-[11px] text-zinc-300 max-h-56 overflow-y-auto leading-relaxed bg-black/40 p-2.5 rounded-lg border border-zinc-800">
+                    {geminiResult}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            {/* خطوات التنسيق الخمس */}
+            <div className="grid grid-cols-5 gap-1 p-1 bg-zinc-900/60 border border-zinc-800 rounded-2xl text-[11px] font-bold">
+              {[
+                { id: "background", icon: "📍", title: "1. المكان والإنارة", desc: "40 مكان + إضاءات" },
+                { id: "subject", icon: "👤", title: "2. المرجع", desc: "الشعر والوجه" },
+                { id: "framing", icon: "📐", title: "3. الكادر", desc: "الزاوية والهاتف" },
+                { id: "attire", icon: "👔", title: "4. المظهر", desc: "الملابس والقصة" },
+                { id: "physics", icon: "🔬", title: "5. الواقعية", desc: "الفيزياء والسناب" },
+              ].map(step => (
+                <button
+                  key={step.id}
+                  onClick={() => setActiveStep(step.id as StepCategory)}
+                  className={`py-2 px-1 rounded-xl text-center transition flex flex-col items-center gap-0.5 ${
+                    activeStep === step.id
+                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/40"
+                      : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/40"
+                  }`}
+                >
+                  <span className="text-sm">{step.icon}</span>
+                  <span className="truncate w-full">{step.title}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* الحاوية المتغيرة */}
+            <div className={`${card} border rounded-2xl p-4 md:p-5 space-y-4`}>
+              {/* الخطوة 1: الأماكن الـ 40 مع فصل تام للإنارة */}
+              {activeStep === "background" && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="border-b border-zinc-800/60 pb-2 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-bold flex items-center gap-2 text-emerald-400">
+                        <span>📍</span> اختيار المكان السعودي (40 خياراً بدون أي معالم)
+                      </h2>
+                      <p className="text-[11px] opacity-60">الأماكن نقية من أي تحديد زمني، ويتم ضبط الإضاءة بخيار مستقل تماماً أدناه.</p>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+                      40 Unique Locs
+                    </span>
+                  </div>
+
+                  {/* تصفية الأماكن وبحث */}
+                  <div className="space-y-2">
+                    <div className="flex gap-1.5 text-xs">
+                      {[
+                        { id: "all", label: "الكل (40)" },
+                        { id: "inside", label: "🚗 داخل السيارة (20)" },
+                        { id: "outside", label: "🚶‍♂️ بجانب السيارة (20)" },
+                      ].map(f => (
+                        <button
+                          key={f.id}
+                          onClick={() => setLocZoneFilter(f.id as any)}
+                          className={`px-3 py-1.5 rounded-xl transition text-xs font-medium ${
+                            locZoneFilter === f.id
+                              ? "bg-emerald-600 text-white"
+                              : `${itemBg} opacity-80 hover:opacity-100`
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <input
+                      type="text"
+                      value={locSearch}
+                      onChange={e => setLocSearch(e.target.value)}
+                      placeholder="ابحث في الأماكن الـ 40 (مثال: بر، شارع، مواقف، محطة، مزرعة)..."
+                      className={`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2 text-xs outline-none`}
+                    />
+
+                    {/* قائمة الأماكن */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto p-1 border border-zinc-800/50 rounded-xl bg-black/20">
+                      {filteredLocs.map(l => (
+                        <div
+                          key={l.id}
+                          onClick={() => setLocId(l.id)}
+                          className={`p-2.5 rounded-xl border text-xs cursor-pointer transition flex items-start gap-2 ${
+                            locId === l.id
+                              ? "bg-emerald-600 text-white border-emerald-500 font-bold shadow-md"
+                              : `${itemBg} border-transparent hover:border-zinc-700`
+                          }`}
+                        >
+                          <span className="text-xs mt-0.5 opacity-60 font-mono">{l.id}.</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="leading-snug">{l.ar}</p>
+                            <span className="text-[10px] opacity-70 block mt-1">
+                              {l.zone === "inside" ? "🚗 داخل الكابينة" : "🚶‍♂️ خارج بجانب السيارة"}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* قسم الإضاءة والإنارة المستقل بالكامل */}
+                  <div className="pt-3 border-t border-zinc-800/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <span>💡</span> نوع ومصدر الإضاءة والإنارة (خيار منفصل تماماً):
+                      </label>
+                      <span className="text-[10px] text-zinc-400 font-mono">19 Lighting Styles</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-1 border border-amber-500/20 rounded-xl bg-amber-950/10">
+                      {LIGHTING_OPTIONS.map(l => (
+                        <div
+                          key={l.id}
+                          onClick={() => setLightId(l.id)}
+                          className={`p-2 rounded-xl border text-xs cursor-pointer transition ${
+                            lightId === l.id
+                              ? "bg-amber-600 text-white border-amber-500 font-bold shadow-md"
+                              : `${itemBg} border-transparent hover:border-zinc-700`
+                          }`}
+                        >
+                          <p className="leading-relaxed">{l.ar}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* السيارة والتظليل كخلفية ثانوية */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <div>
+                      <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
+                        🚙 طراز السيارة (بالخلفية):
+                      </label>
+                      <select
+                        value={carModelId}
+                        onChange={e => setCarModelId(e.target.value)}
+                        className={`w-full ${itemBg} border ${borderTone} rounded-xl p-2 text-xs outline-none`}
+                      >
+                        {CAR_MODELS.map(m => (
+                          <option key={m.id} value={m.id}>{m.ar}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
+                        🎨 لون السيارة:
+                      </label>
+                      <select
+                        value={carColorId}
+                        onChange={e => setCarColorId(e.target.value)}
+                        className={`w-full ${itemBg} border ${borderTone} rounded-xl p-2 text-xs outline-none`}
+                      >
+                        {CAR_COLORS.map(c => (
+                          <option key={c.id} value={c.id}>{c.ar}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
+                        🕶️ تظليل النوافذ:
+                      </label>
+                      <select
+                        value={tintId}
+                        onChange={e => setTintId(e.target.value)}
+                        className={`w-full ${itemBg} border ${borderTone} rounded-xl p-2 text-xs outline-none`}
+                      >
+                        {WINDOW_TINTS.map(t => (
+                          <option key={t.id} value={t.id}>{t.ar}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* الخطوة 2: هوية بطل السيلفي */}
+              {activeStep === "subject" && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="border-b border-zinc-800/60 pb-2">
+                    <h2 className="text-sm font-bold flex items-center gap-2 text-emerald-400">
+                      <span>👤</span> مواصفات بطل الصورة (تثبيت الكثافة والملامح 100%)
+                    </h2>
+                    <p className="text-[11px] opacity-60">يمنع منعاً باتاً تغيير سمك أو كثافة شعر الرأس أو اللحية الأصلية للمرجع.</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      💇‍♂️ تسريحة شعر الرأس (مع الحفاظ الصارم على نفس الكثافة وخط الشعر):
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {HAIR_STYLES.map(h => (
+                        <CardRadio
+                          key={h.id}
+                          selected={hairId === h.id}
+                          onClick={() => setHairId(h.id)}
+                          title={h.ar}
+                          activeColor="emerald"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      🧔 تنسيق اللحية (نفس الكثافة الطبيعية والشكل الأصلي):
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {BEARD_STYLES.map(b => (
+                        <CardRadio
+                          key={b.id}
+                          selected={beardId === b.id}
+                          onClick={() => setBeardId(b.id)}
+                          title={b.ar}
+                          activeColor="emerald"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      🎭 التشريح الحركي وتعبير الوجه (عضلي عفوي غير متصلب):
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {ANATOMICAL_EXPRESSIONS.map(e => (
+                        <CardRadio
+                          key={e.id}
+                          selected={anatomicalExprId === e.id}
+                          onClick={() => setAnatomicalExprId(e.id)}
+                          title={e.ar}
+                          activeColor="emerald"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      📏 تناسق القامة الفارهة (195 سم):
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {HEIGHT_CUES.map(hc => (
+                        <BadgeSelect
+                          key={hc.id}
+                          selected={heightCueId === hc.id}
+                          onClick={() => setHeightCueId(hc.id)}
+                        >
+                          {hc.ar}
+                        </BadgeSelect>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* الخطوة 3: الكادر والكاميرا */}
+              {activeStep === "framing" && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="border-b border-zinc-800/60 pb-2">
+                    <h2 className="text-sm font-bold flex items-center gap-2 text-emerald-400">
+                      <span>📐</span> تأطير الكادر ومحاكاة السيلفي باليد
+                    </h2>
+                    <p className="text-[11px] opacity-60">التحكم في زاوية الالتقاط والمسافة الطبيعية لذراع السيلفي.</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      🎯 أولوية التأطير (الشخص المرجعي أولاً):
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {FRAMINGS.map(f => (
+                        <CardRadio
+                          key={f.id}
+                          selected={frameId === f.id}
+                          onClick={() => setFrameId(f.id)}
+                          title={f.ar}
+                          activeColor="emerald"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                        📱 هاتف الالتقاط:
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PHONES.map(p => (
+                          <BadgeSelect
+                            key={p.id}
+                            selected={phoneId === p.id}
+                            onClick={() => setPhoneId(p.id)}
+                          >
+                            {p.ar}
+                          </BadgeSelect>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                        📐 زاوية التصوير:
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ANGLES.map(a => (
+                          <BadgeSelect
+                            key={a.id}
+                            selected={angleId === a.id}
+                            onClick={() => setAngleId(a.id)}
+                          >
+                            {a.ar}
+                          </BadgeSelect>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      🤳 وضعية اليد وحركة السيلفي:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {POSES.map(p => (
+                        <CardRadio
+                          key={p.id}
+                          selected={poseId === p.id}
+                          onClick={() => setPoseId(p.id)}
+                          title={p.ar}
+                          activeColor="emerald"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      📐 نسبة أبعاد الصورة:
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {ASPECTS.map(a => (
+                        <BadgeSelect
+                          key={a.id}
+                          selected={aspectId === a.id}
+                          onClick={() => setAspectId(a.id)}
+                        >
+                          {a.ar}
+                        </BadgeSelect>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* الخطوة 4: المظهر والقصة */}
+              {activeStep === "attire" && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="border-b border-zinc-800/60 pb-2">
+                    <h2 className="text-sm font-bold flex items-center gap-2 text-emerald-400">
+                      <span>👔</span> المظهر الخارجي وسياق اللقطة العفوي
+                    </h2>
+                    <p className="text-[11px] opacity-60">الملابس وإكسسوارات الشخص والسبب العفوي لالتقاط السيلفي.</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      👔 الملابس والمظهر:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {CLOTHES.map(c => (
+                        <div
+                          key={c.id}
+                          onClick={() => setClothId(c.id)}
+                          className={`p-2.5 rounded-xl border text-xs cursor-pointer transition flex items-center justify-between ${
+                            clothId === c.id
+                              ? "bg-emerald-600 text-white border-emerald-500 font-bold shadow"
+                              : `${itemBg} border-transparent hover:border-zinc-700`
+                          }`}
+                        >
+                          <span>{c.ar}</span>
+                          <span className="text-[10px] opacity-70 px-1.5 py-0.5 rounded bg-black/20">
+                            {c.cat}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      📖 سياق القصة والسبب العفوي للسيلفي:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {STORYLINES.map(s => (
+                        <CardRadio
+                          key={s.id}
+                          selected={storylineId === s.id}
+                          onClick={() => setStorylineId(s.id)}
+                          title={s.ar}
+                          activeColor="emerald"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-2">
+                      🕶️ إكسسوار شخصي:
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ACCESSORIES.map(acc => (
+                        <BadgeSelect
+                          key={acc.id}
+                          selected={accessoryId === acc.id}
+                          onClick={() => setAccessoryId(acc.id)}
+                        >
+                          {acc.ar}
+                        </BadgeSelect>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* الخطوة 5: الفيزياء المجهرية وسناب شات */}
+              {activeStep === "physics" && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="border-b border-zinc-800/60 pb-2">
+                    <h2 className="text-sm font-bold flex items-center gap-2 text-emerald-400">
+                      <span>🔬</span> تفاصيل الواقعية المجهرية ومحاكاة السناب
+                    </h2>
+                    <p className="text-[11px] opacity-60">تفعيل العيوب والفيزياء البصرية الدقيقة لكسر الذكاء الاصطناعي 100%.</p>
+                  </div>
+
+                  <MultiToggleGroup
+                    title="🩸 تشتت الضوء تحت الجلد (Subsurface Scattering):"
+                    items={SUBSURFACE_PHYSICS}
+                    activeIds={subsurfaceIds}
+                    onToggle={id => toggle(id, subsurfaceIds, setSubsurfaceIds)}
+                    itemBg={itemBg}
+                  />
+
+                  <MultiToggleGroup
+                    title="📱 شاشة وتطبيقات التواصل (سناب شات):"
+                    items={APP_UI_ELEMENTS}
+                    activeIds={appUiIds}
+                    onToggle={id => toggle(id, appUiIds, setAppUiIds)}
+                    itemBg={itemBg}
+                  />
+
+                  <MultiToggleGroup
+                    title="👕 فيزياء الأقمشة وكسرات الجلوس:"
+                    items={FABRIC_PHYSICS}
+                    activeIds={fabricIds}
+                    onToggle={id => toggle(id, fabricIds, setFabricIds)}
+                    itemBg={itemBg}
+                  />
+
+                  <MultiToggleGroup
+                    title="🌡️ فيزياء الطقس والمناخ المجهري:"
+                    items={THERMAL_CLIMATE_PHYSICS}
+                    activeIds={thermalIds}
+                    onToggle={id => toggle(id, thermalIds, setThermalIds)}
+                    itemBg={itemBg}
+                  />
+
+                  <MultiToggleGroup
+                    title="🤳 عيوب مسكة اليد والاهتزاز العفوي:"
+                    items={GRIP_MOTION_NUANCES}
+                    activeIds={gripMotionIds}
+                    onToggle={id => toggle(id, gripMotionIds, setGripMotionIds)}
+                    itemBg={itemBg}
+                  />
+
+                  <MultiToggleGroup
+                    title="📸 بصريات وعيوب العدسة:"
+                    items={OPTICAL_IMPERFECTIONS}
+                    activeIds={opticalIds}
+                    onToggle={id => toggle(id, opticalIds, setOpticalIds)}
+                    itemBg={itemBg}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* صندوق عرض ونسخ البرومبت */}
+            <div className={`${card} border rounded-2xl p-4 md:p-5 space-y-3`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🧠</span>
+                  <h3 className="font-bold text-sm">البرومبت الاحترافي المولد (40 Locs + Independent Light)</h3>
+                </div>
+                <div className="flex gap-1 bg-zinc-800/80 p-0.5 rounded-xl text-xs">
+                  {(["ar", "en", "both"] as Lang[]).map(l => (
+                    <button
+                      key={l}
+                      onClick={() => setLang(l)}
+                      className={`px-2.5 py-1 rounded-lg font-medium transition ${
+                        lang === l ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      {l === "ar" ? "عربي" : l === "en" ? "EN" : "الاثنين"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {(lang === "ar" || lang === "both") && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-emerald-400">الأمر بالعربية:</span>
+                    <button
+                      onClick={() => copy(prompt.ar, "ar")}
+                      className="text-xs px-2.5 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold transition"
+                    >
+                      نسخ العربي
+                    </button>
+                  </div>
+                  <pre className="whitespace-pre-wrap text-xs bg-black/40 border border-zinc-800 rounded-xl p-3 max-h-48 overflow-y-auto leading-relaxed text-zinc-300 font-mono">
+                    {prompt.ar}
+                  </pre>
+                </div>
+              )}
+
+              {(lang === "en" || lang === "both") && (
+                <div dir="ltr">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-emerald-400">English Prompt (Midjourney / ChatGPT):</span>
+                    <button
+                      onClick={() => copy(prompt.en, "en")}
+                      className="text-xs px-2.5 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold transition"
+                    >
+                      Copy English
+                    </button>
+                  </div>
+                  <pre className="whitespace-pre-wrap text-xs bg-black/40 border border-zinc-800 rounded-xl p-3 max-h-48 overflow-y-auto leading-relaxed text-zinc-300 font-mono text-left">
+                    {prompt.en}
+                  </pre>
+                </div>
+              )}
+
+              <button
+                onClick={() => copy(`${prompt.ar}\n\n====================\n\n${prompt.en}`, "both")}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs md:text-sm shadow-lg shadow-emerald-700/30 transition flex items-center justify-center gap-2"
+              >
+                <span>📋</span>
+                <span>نسخ البرومبت الكامل (عربي + إنجليزي)</span>
+              </button>
+            </div>
+
+            {/* حفظ الجلسة */}
+            <div className={`${card} border rounded-2xl p-4 flex gap-2 items-center`}>
+              <input
+                value={sessionName}
+                onChange={e => setSessionName(e.target.value)}
+                placeholder="تسمية مخصصة لحفظ هذه التوليفة..."
+                className={`flex-1 ${itemBg} border ${borderTone} rounded-xl px-3 py-2 text-xs outline-none`}
+              />
+              <button
+                onClick={saveSession}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition whitespace-nowrap"
+              >
+                💾 حفظ التوليفة
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* التبويب 2: السيناريوهات الجاهزة */}
+        {tab === "presets" && (
+          <div className="space-y-3">
+            <div className="border-b border-zinc-800/80 pb-2">
+              <h2 className="text-base font-bold text-zinc-100">⚡ سيناريوهات سريعة مطابقة للقاعدة الذهبية</h2>
+              <p className="text-xs opacity-60">توليفات جاهزة تضمن سيطرة الشخص المرجعي (80%) وتناسق الإضاءة والخلفية بنقرة واحدة.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {PRESET_MOODS.map(m => (
+                <div key={m.id} className={`${card} border rounded-2xl p-4 flex flex-col justify-between space-y-3`}>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl">{m.icon}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">
+                        {m.badge}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-sm text-zinc-100">{m.title}</h3>
+                    <p className="text-xs opacity-75 leading-relaxed">{m.desc}</p>
+                  </div>
+                  <button
+                    onClick={() => applyPreset(m)}
+                    className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow"
+                  >
+                    تطبيق وتوليد البرومبت ←
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* التبويب 3: الجلسات المحفوظة */}
+        {tab === "sessions" && (
+          <div className={`${card} border rounded-2xl p-4 md:p-5 space-y-3`}>
+            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2">
+              <h2 className="text-sm font-bold text-zinc-100">💾 الجلسات والتوليفات المحفوظة ({sessions.length})</h2>
+              {sessions.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (confirm("هل تريد مسح جميع الجلسات المحفوظة؟")) setSessions([]);
+                  }}
+                  className="text-[11px] text-rose-400 hover:underline"
+                >
+                  مسح الكل
+                </button>
+              )}
+            </div>
+
+            {sessions.length === 0 ? (
+              <div className="text-center py-10 opacity-60 text-xs">
+                لا توجد توليفات محفوظة حتى الآن. يمكنك حفظ أي تركيبة من الاستوديو للرجوع إليها لاحقاً.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {sessions.map(s => (
+                  <div key={s.id} className={`${itemBg} border ${borderTone} rounded-xl p-3 flex items-center justify-between gap-3`}>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold truncate text-zinc-200">{s.name}</p>
+                      <p className="text-[10px] opacity-60">{new Date(s.createdAt).toLocaleString("ar-SA")}</p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => loadSession(s)}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition"
+                      >
+                        تطبيق
+                      </button>
+                      <button
+                        onClick={() => setSessions(prev => prev.filter(x => x.id !== s.id))}
+                        className="px-2 py-1.5 rounded-lg bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white text-xs transition"
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* التبويب 4: دليل القاعدة الذهبية */}
+        {tab === "guide" && (
+          <div className={`${card} border rounded-2xl p-4 md:p-5 space-y-4 text-xs md:text-sm leading-relaxed opacity-90`}>
+            <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/40 space-y-2">
+              <h3 className="font-bold text-emerald-400 text-sm">👑 ما هي القاعدة الذهبية الصارمة للسيلفي؟</h3>
+              <p className="text-xs leading-relaxed opacity-90">
+                الشخص المرجعي (الوجه، الأكتاف، ملامح العينين، والشارب) يملأ 80% من الكادر بمقدمة الصورة، وأي عنصر آخر (المكان، السيارة، المقاعد) يظهر كخلفية ثانوية فقط إذا سمحت زاوية اليد الطبيعية بذلك.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+              <h4 className="font-bold text-amber-400 text-xs">🔒 فصل المكان عن الإنارة:</h4>
+              <p className="text-xs opacity-80">
+                تم عزل الـ 40 مكاناً تماماً عن الزمن والإضاءة؛ مما يتيح لك دمج أي موقع (مثل كراج هادئ، درايف ثرو، أو مزرعة) مع أي إضاءة ترغب بها (شمس ظهيرة حادة، أعمدة صوديوم صفراء، فلاش مباشر، أو وهج شاشة الملاحة).
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* التبويب 5: مواصفات المرجع */}
+        {tab === "about" && (
+          <div className={`${card} border rounded-2xl p-4 md:p-5 space-y-3`}>
+            <h3 className="font-bold text-sm text-zinc-100">👤 بطاقة الهوية البيومترية للمرجع</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className={`${itemBg} p-3 rounded-xl space-y-1`}>
+                <span className="opacity-60 block text-[10px]">القامة والبنية:</span>
+                <span className="font-bold text-emerald-400">195 سم / 88 كجم (بنية رياضية وأكتاف عريضة)</span>
+              </div>
+              <div className={`${itemBg} p-3 rounded-xl space-y-1`}>
+                <span className="opacity-60 block text-[10px]">كثافة شعر الرأس:</span>
+                <span className="font-bold text-zinc-200">مقفلة 100% (شعر أسود طبيعي متوسط الكثافة)</span>
+              </div>
+              <div className={`${itemBg} p-3 rounded-xl space-y-1`}>
+                <span className="opacity-60 block text-[10px]">تنسيق اللحية:</span>
+                <span className="font-bold text-zinc-200">مقفلة 100% (لحية متوسطة محددة عضوياً وشارب متصل)</span>
+              </div>
+              <div className={`${itemBg} p-3 rounded-xl space-y-1`}>
+                <span className="opacity-60 block text-[10px]">ملامح الوجه:</span>
+                <span className="font-bold text-zinc-200">نمش خفيف بالوجنتين والأنف وعيون عسلية دافئة</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* الشريط السفلي العائم */}
+      {tab === "gen" && (
+        <div className={`fixed bottom-0 left-0 right-0 z-40 border-t ${borderTone} ${darkMode ? "bg-zinc-950/90" : "bg-white/90"} backdrop-blur-md py-2.5 px-4 shadow-2xl`}>
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+            <div className="min-w-0 hidden sm:block">
+              <p className="text-[11px] font-bold truncate text-zinc-200">
+                {loc.ar.slice(0, 18)}... · {light.ar.slice(0, 14)}... · {hair.ar.split(" ")[0]}
+              </p>
+              <p className="text-[10px] text-emerald-400 font-mono">195cm Locked · Subject Dominant</p>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => copy(prompt.ar, "ar")}
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold transition"
+              >
+                نسخ عربي
+              </button>
+              <button
+                onClick={() => copy(prompt.en, "en")}
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold transition font-mono"
+              >
+                Copy EN
+              </button>
+              <button
+                onClick={() => copy(`${prompt.ar}\n\n====================\n\n${prompt.en}`, "both")}
+                className="flex-1 sm:flex-none px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-lg shadow-emerald-700/30 transition flex items-center justify-center gap-1.5"
+              >
+                <span>📋</span>
+                <span>نسخ كامل</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CardRadio({ selected, onClick, title, activeColor = "emerald" }: {
+  selected: boolean;
+  onClick: () => void;
+  title: string;
+  activeColor?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`p-2.5 rounded-xl text-xs text-right border transition ${
+        selected
+          ? `bg-${activeColor}-600 text-white border-${activeColor}-500 font-semibold shadow-sm`
+          : "bg-zinc-800/60 hover:bg-zinc-800 text-zinc-300 border-transparent hover:border-zinc-700"
+      }`}
+    >
+      {title}
+    </button>
+  );
+}
+
+function BadgeSelect({ selected, onClick, children }: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${
+        selected
+          ? "bg-emerald-600 text-white shadow-sm"
+          : "bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function MultiToggleGroup({ title, items, activeIds, onToggle, itemBg }: {
+  title: string;
+  items: Opt[];
+  activeIds: string[];
+  onToggle: (id: string) => void;
+  itemBg: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-zinc-300 block">{title}</label>
+      <div className="flex flex-wrap gap-1.5">
+        {items.map(item => {
+          const on = activeIds.includes(item.id);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onToggle(item.id)}
+              className={`px-2.5 py-1.5 rounded-xl text-xs transition border ${
+                on
+                  ? "bg-emerald-600 text-white font-semibold border-emerald-500 shadow-sm"
+                  : `${itemBg} border-transparent text-zinc-400 hover:text-zinc-200`
+              }`}
+            >
+              {item.ar}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+```

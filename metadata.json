@@ -1,0 +1,6 @@
+{
+  "name": "Selfie Prompt Studio & Optimizer",
+  "description": "استوديو احترافي متقدم لصياغة أوامر السيلفي الواقعية للذكاء الاصطناعي مع محاكي زوايا حية وذكاء Gemini",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
