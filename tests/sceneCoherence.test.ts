@@ -380,7 +380,8 @@ test('roof and tinted window invariants over 60 locations x 3 frames x 4 lightin
         assert.ok(prompt.includes('Height 193cm'));
         assert.doesNotMatch(prompt, /(?:195|194)cm frame/);
         if (loc.zone === 'inside' && id === 'harsh_noon' && loc.id !== 10) {
-          assert.doesNotMatch(prompt, /harsh overhead direct noon sun casting sharp vertical shadows/);
+          assert.match(prompt, /harsh overhead direct noon sun casting sharp vertical shadows/);
+          assert.match(prompt, /opaque vehicle roof blocks direct overhead rays/);
         }
         if (loc.zone === 'outside') assert.doesNotMatch(prompt, /window tint affects cabin face illumination/i);
       }
