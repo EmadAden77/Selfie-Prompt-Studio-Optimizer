@@ -469,129 +469,77 @@ export function joinEn(list: Opt[], fallback = "none"): string {
 }
 
 export function buildPrompt(i: BuildInput): { ar: string; en: string } {
-  const interiorPhysicsAr = i.loc.zone === 'inside'
-    ? 'هندسة داخل السيارة: السيلفي ملتقط من مقعد السائق بواسطة يد واحدة؛ يظل الجسم خلف المقود وفق أبعاد المقعد الفعلية، مع عدم اختراع يد ثالثة أو إظهار كامل المقصورة قسرًا. الضوء الذي يدخل عبر زجاج السيارة يعتمد على جهة النافذة والتظليل؛ إنارة الشاشات ضعيفة وموضعية، ولا يوجد ضوء تعبئة غير مرئي. لا تُفرض مسافة هاتف أو ارتفاع مسند ثابت على جميع السيارات. المقود والطبلون لا يظهران إلا إذا سمحت زاوية الهاتف.'
-    : '';
-  const interiorPhysicsEn = i.loc.zone === 'inside'
-    ? 'INTERIOR SELFIE GEOMETRY: One hand holds the front-facing phone from the driver seat; the other hand has only one physically possible position. Driver torso stays behind the steering wheel with seat, B-pillar, dashboard and roof geometry true to the selected model. Only show cabin details permitted by actual handheld camera view, never an artificial wide vehicle shot. Exterior light penetrates only through plausible windows and tint; dashboard illumination is weak and localized, with no invisible fill. Seat and headrest positions must suit the real vehicle and tall stature, not a fixed universal extreme.'
-    : '';
-  const ar = `👑 القاعدة الأساسية الصارمة للكادر (Subject-First Rule):
-الشخص المرجعي بالصورة المرفقة هو "أساس وبطل التصوير السيلفي" والمسيطر الأكبر على الكادر (يملأ 75% إلى 85% من مساحة الصورة بالمقدمة كسيلفي هاتف ممسوك باليد). أي عنصر آخر (السيارة، الديكور، الشارع، المباني) هو عنصر ثانوي يظهر في الخلفية فقط إذا سمحت زاوية واتجاه يد السيلفي الطبيعية، ولا يتم إبعاد الكاميرا لإظهار كامل السيارة أو محاكاة إعلان تجاري.
-
-🔒 قفل الملامح والبيومترية والكثافة 100%:
-- مطابقة تامة لا تقبل المساومة لبنية عظام الوجه والرأس، وشكل وتباعد العينين، والجفون والحواجب، والأنف، والشفتين، والوجنتين، وخط الفك والذقن، والأذنين من الصورة المرجعية.
-- الحفاظ على لون البشرة الأصلي واللاتناظر الطبيعي للوجه البشري، والعمر التقديري دون فلترة أو تجميل مصطنع.
-- الحفاظ التام والصارم على خط منبت الشعر الأصلي، وكثافة الشعر الطبيعية الفردية وملمسه.
-- الحفاظ الدقيق على كثافة وشكل اللحية والشارب الأصلية وعشوائيتها الطبيعية بدون ليزر أو تنميق تجاري.
-
-👤 مواصفات الشخص المرجعي (بطل الصورة المهيمن):
-- الهوية: نفس ملامح وعيني وشخصية الشاب بالصورة المرجعية بدقة 100%.
-- القامة والبنية: فارع الطول (${SUBJECT_HEIGHT_CM} سم) ووزن (${SUBJECT_WEIGHT_KG} كجم) ذو بنية رياضية ممشوقة (Lean athletic build) وأكتاف عريضة تملأ أسفل الكادر.
-- تسريحة الشعر (بنفس الكثافة والسمك الأصلي): ${i.hair.ar}.
-- شكل وتنسيق اللحية (بنفس الكثافة والشارب الأصلي): ${i.beard.ar}.
-- التعبير العضلي والتشريحي الحقيقي: ${i.anatomicalExpr.ar}.
-- تفاصيل البشرة والنسيج الحيوي: ${joinAr(i.skinNuances)}.
-- تناسق الطول الفارع وتأثيره: ${i.heightCue.ar}.
-- ديناميكية جسد القامة الطويلة (${SUBJECT_HEIGHT_CM} سم): ${joinAr(i.tallErgonomics)}.
-
-📷 تأطير السيلفي والكاميرا ومحاكاة التطبيقات:
-- التأطير المباشر: ${i.frame.ar}.
-- الكاميرا: تم الالتقاط بواسطة (${i.phone.ar})، زاوية (${i.angle.ar}) ممسوكة بيد الشخص على امتداد طبيعي لذراعه يناسب زاوية الكاميرا.
-- الوضعية وحركة اليد: ${i.pose.ar}.
-- تأثيرات العدسة ومستشعر الهاتف: ${joinAr(i.opticals)}.
-- تفاعل قبضة اليد والاهتزاز الطبيعي: ${joinAr(i.gripMotions)}.
-- عيوب ومعالجة كاميرا السناب شات: ${joinAr(i.inAppArtifacts)}.
-- محاكاة شاشة السناب والملصقات: ${joinAr(i.appUis)}.
-
-👔 مظهر الشخص وفيزياء الأقمشة والضوء:
-- الملابس والمظهر: ${i.cloth.ar}.
-- تفاصيل وإكسسوارات شخصية: ${i.accessory.ar}.
-- فيزياء تشتت الضوء تحت جلد الوجه: ${joinAr(i.subsurfaces)}.
-- فيزياء نسيج وتجاعيد الملابس: ${joinAr(i.fabrics)}.
-- ديناميكية تدفق الهواء على الخصلات والقماش: ${joinAr(i.airflows)}.
-
-📖 سياق القصة والسبب العفوي للصورة: ${i.storyline.ar}.
-
-💡 هندسة الإضاءة والإنارة المختارة (مفصولة ومحددة):
-- نوع ومصدر الإنارة الأساسي: ${i.light.ar}.
-- ارتداد أضواء الشاشات على الوجه والثوب: ${joinAr(i.screenCasts)}.
-
-🚗 العناصر الثانوية المحيطة (تظهر بالخلفية فقط إذا سمحت زاوية السيلفي):
-- المكان المحايد (بدون معالم): ${i.loc.ar}.
-- وضعية التواجد: ${i.loc.zone === "inside" ? "جالس في مقعد السائق داخل مقصورة (" + i.carModel.ar + " لون " + i.carColor.ar + ") - تظهر أجزاء الكابينة بعفوية خلفه وحوله" : "واقف بجانب (" + i.carModel.ar + " لون " + i.carColor.ar + ") وتظهر أجزاء منها بالخلفية فقط"}.
-- تفاصيل الكابينة والكونسول (خلفية ثانوية): ${joinAr(i.cabins)}.
-- مقتنيات الكابينة اليومية الحقيقية: ${joinAr(i.cabinArtifacts)}.
-- فيزياء تظليل النوافذ والضوء: ${i.tint.ar}.
-- شاشات الطبلون (إذا سمحت الزاوية برؤيتها خلف يده): ${joinAr(i.dashUis)}.
-- فوضى مقصورة السيارة المحيطة: ${joinAr(i.clutters)}.
-- فيزياء الطقس والمناخ المجهري: ${joinAr(i.thermals)}.
-- تفاصيل الطقس الموضعي اللحظي: ${joinAr(i.microWeathers)}.
-
-${interiorPhysicsAr}
-
-🚫 تجنب تغيير الهوية، والإضاءة غير المبررة، والجلد الاصطناعي، والأيدي المستحيلة، والتأطير الإعلاني للسيارة.
-📐 أبعاد الصورة: ${i.aspect.ar}.`;
-
-  const en = `👑 MASTER COMPOSITION MANDATE: SUBJECT-FIRST SELFIE HIERARCHY
-The reference person is the ABSOLUTE PRIMARY SUBJECT and dominant focal point of the image, occupying 75% to 85% of the frame as a realistic close/medium smartphone selfie held at a plausible one-handed arm's length appropriate to the person, camera and visible perspective.
-ANY OTHER ELEMENT (the vehicle, steering wheel, dashboard, street, buildings) is strictly INCIDENTAL & SECONDARY BACKGROUND, visible ONLY if and where the organic selfie arm angle naturally permits. NEVER zoom out to show the whole car, NEVER center the vehicle, NEVER frame like an automotive commercial. The man is the photo; the rest is just where he happens to be.
-
-🔒 STRICT IDENTITY & BIOMETRIC DENSITY LOCK:
-- Exact replication of facial bone structure, head proportions, eye shape, spacing, eyelids, and natural eyebrows from the attached reference photo 1:1.
-- Exact nose contour, lip volume, cheekbones, jawline, chin, and ear shape.
-- The exact original skin tone from the reference (no nationality-based recoloring), authentic human facial asymmetry, and apparent age without artificial beautification, smoothing, or airbrushing.
-- Preserve preserve the exact original hairline, individual hair texture, and natural hair density.
-- Preserve preserve the exact original beard and mustache density, shape, and organic un-lasered irregularities.
-- DO NOT invent facial characteristics that are absent from the reference image.
-
-👤 Dominant Subject Parameters:
-- Identity: Exact Middle Eastern / Saudi man from attached reference photo.
-- Stature & Physique: ${SUBJECT_HEIGHT_CM}cm (6'4"), ${SUBJECT_WEIGHT_KG}kg, lean athletic build, broad shoulders framing the lower composition.
-- Hair Flow & Styling (PRESERVING EXACT REFERENCE DENSITY & TEXTURE): ${i.hair.en}.
-- Beard Grooming (PRESERVING EXACT REFERENCE DENSITY & SHAPE): ${i.beard.en}.
-- Anatomical Facial Dynamics: ${i.anatomicalExpr.en}.
-- Micro-Dermal Realism: ${joinEn(i.skinNuances)}.
-- ${SUBJECT_HEIGHT_CM}cm Scale Nuances: ${i.heightCue.en}.
-- Tall Ergonomics & Stature Dynamics: ${joinEn(i.tallErgonomics)}.
-
-📷 Selfie Camera & Optical Profile:
-- Framing Priority: ${i.frame.en}.
-- Capture Device: Shot on (${i.phone.en}) front camera, angle: (${i.angle.en}) held at natural arm distance.
-- Pose & Grip Dynamics: ${i.pose.en}.
-- Lens & CMOS Sensor Imperfections: ${joinEn(i.opticals)}.
-- Biomechanical Grip & Natural Drift: ${joinEn(i.gripMotions)}.
-- In-App Snapchat Sensor Artifacts: ${joinEn(i.inAppArtifacts)}.
-- Social App & Snapchat UI: ${joinEn(i.appUis)}.
-
-👔 Attire & Personal Details:
-- Outfit: ${i.cloth.en}.
-- Carried Accessories: ${i.accessory.en}.
-- Subsurface Facial Translucency: ${joinEn(i.subsurfaces)}.
-- Textile Tension & Natural Creases: ${joinEn(i.fabrics)}.
-- Atmospheric Airflow: ${joinEn(i.airflows)}.
-
-📖 Candid Context & Storyline: ${i.storyline.en}.
-
-💡 Standalone Lighting & Illumination Setup:
-- Primary Source & Ambiance: ${i.light.en}.
-- Screen Light Cast & Bounce: ${joinEn(i.screenCasts)}.
-
-🚗 Incidental Vehicle & Background (Visible ONLY as Secondary Context):
-- Generic Local Setting (No landmarks): ${i.loc.en}.
-- Position Context: ${i.loc.zone === "inside" ? "sitting in driver seat of (" + i.carModel.en + " in " + i.carColor.en + "), cabin elements visible organically around his shoulders and head" : "standing outside beside (" + i.carModel.en + " in " + i.carColor.en + "), vehicle visible only in background behind subject"}.
-- Secondary Cabin Elements: ${joinEn(i.cabins)}.
-- Everyday Interior Artifacts: ${joinEn(i.cabinArtifacts)}.
-- Window Tinting Physics: ${i.tint.en}.
-- Dashboard Display Details (only if visible under arm): ${joinEn(i.dashUis)}.
-- Ambient Daily Clutter: ${joinEn(i.clutters)}.
-- Thermal & Atmospheric Physics: ${joinEn(i.thermals)}.
-- Micro-Climate Atmosphere: ${joinEn(i.microWeathers)}.
-
-${interiorPhysicsEn}
-
-🚫 Avoid identity changes, invented face details, fake studio lighting, synthetic skin, impossible hands, and car-commercial framing.
-📐 Target Aspect Ratio: ${i.aspect.en}.`;
-
-  const clean = (v: string) => v.replace(/\b(?:193|194|195)\s*cm\b/gi, SUBJECT_HEIGHT_CM + 'cm').replace(/\b(?:83|88)\s*kg\b/gi, SUBJECT_WEIGHT_KG + 'kg').replace(/STRICTLY MANDATORY|STRICT REQUIREMENT/gi, '').replace(/\n{3,}/g, '\n\n');
-  return { ar: clean(ar), en: clean(en) };
+  // The caller supplies a physics-sanitized scene. No additional invented details.
+  const inside = i.loc.zone === 'inside';
+  const close = i.frame.id === 'close_face';
+  const isThobe = i.cloth.id.includes('thobe');
+  const extras = (a: Opt[], language: 'ar' | 'en') =>
+    [...new Set(a.map(x => x[language].trim()).filter(x =>
+      x && !/^(none|natural|n\/a|لا يوجد|طبيعي)$/i.test(x)
+    ))].join(language === 'ar' ? '، ' : '; ');
+  const normalized = (value: string) => value
+    .replace(/\b(?:193|194|195)\s*cm\b/gi, SUBJECT_HEIGHT_CM + 'cm')
+    .replace(/\b(?:83|88)\s*kg\b/gi, SUBJECT_WEIGHT_KG + 'kg')
+    .replace(/\b(?:Preserve\s+){2,}/gi, 'Preserve ')
+    .replace(/\b(?:STRICT|MANDATORY|ABSOLUTE)\b:?/gi, '')
+    .replace(/\s+\./g, '.').replace(/\n{3,}/g, '\n\n').trim();
+  const build = (lang: 'ar' | 'en') => {
+    const ar = lang === 'ar';
+    const sections: string[] = [];
+    const append = (title: string, entries: (string | undefined)[]) => {
+      const unique = [...new Set(entries.filter((x): x is string => Boolean(x?.trim())).map(x => x.trim()))];
+      if (unique.length) sections.push(title + '\n' + unique.join('\n'));
+    };
+    const pick = (o: Opt) => o[lang];
+    const optional = (name: string, arr: Opt[]) => {
+      const v = extras(arr, lang);
+      return v ? name + v : undefined;
+    };
+    const accessory = i.accessory.id === 'sunglasses_collar' && i.cloth.id === 'thobe_shmagh'
+      ? undefined : pick(i.accessory);
+    const beard = i.beard.id === 'ref_fresh_trimmed_neat'
+      ? (ar ? 'احتفظ بلحية الصورة المرجعية وحدودها الطبيعية دون تشذيب أو إعادة رسم' : 'Preserve the beard, natural cheekline, neckline, mustache and growth gaps as actually visible; no added grooming')
+      : pick(i.beard);
+    const expr = i.anatomicalExpr.id === 'sun_squint_lines' && !['harsh_noon','noon_sun','golden_hour'].includes(i.light.id)
+      ? (ar ? 'تعبير محايد طبيعي دون تجاعيد مخترعة' : 'Natural neutral eyelids; no fabricated squint or wrinkles')
+      : pick(i.anatomicalExpr);
+    append(ar ? 'الهوية والشخص' : 'SUBJECT AND IDENTITY', [
+      ar ? 'استعمل الوجه في الصورة المرجعية مصدرًا وحيدًا للهوية؛ حافظ على البنية واللون وخط الشعر واللحية والعمر واللاتناظر المرئي دون إضافة سمات غير مؤكدة.' :
+        'Use the attached reference as the only facial identity source. Preserve visible face geometry, skin tone, age, asymmetry, hairline, beard density and boundaries; do not invent unseen traits.',
+      ar ? `الطول ${SUBJECT_HEIGHT_CM} سم، الوزن ${SUBJECT_WEIGHT_KG} كجم، بنية رياضية نحيلة.` :
+        `Height ${SUBJECT_HEIGHT_CM}cm, weight ${SUBJECT_WEIGHT_KG}kg, lean athletic build.`,
+      pick(i.hair), beard, expr
+    ]);
+    append(ar ? 'الكاميرا والتكوين' : 'CAMERA AND COMPOSITION', [
+      ar ? 'سيلفي حقيقي بيد واحدة؛ الشخص العنصر الرئيسي، والخلفية لا تظهر إلا إن سمحت زاوية عدسة الهاتف. لا يُفرض امتداد الذراع الأقصى.' :
+        'Authentic one-handed front-camera selfie. The person dominates naturally; background appears only within the physical phone field of view. Relaxed elbow, never forced maximum reach.',
+      pick(i.aspect), pick(i.frame), pick(i.phone), pick(i.angle),
+      optional(ar ? 'بصريات: ' : 'Optics: ', i.opticals),
+      optional(ar ? 'إحساس الكاميرا: ' : 'Camera rendering: ', i.inAppArtifacts)
+    ]);
+    append(ar ? 'الوضعية والملابس' : 'POSTURE AND CLOTHING', [
+      pick(i.pose), pick(i.cloth), accessory,
+      optional(ar ? 'سلوك القماش: ' : 'Fabric response: ', close ? i.fabrics.filter(x => x.id !== 'seat_hip_creases') : i.fabrics),
+      optional(ar ? 'الحركة: ' : 'Motion: ', i.gripMotions.filter(x => x.id !== 'natural_arm_stretch'))
+    ]);
+    append(ar ? 'المكان والضوء الفيزيائي' : 'SCENE AND PHYSICAL LIGHTING', [
+      pick(i.loc),
+      inside ? (ar ? `داخل مقعد سائق ${pick(i.carModel)} بلون ${pick(i.carColor)}.` : `Seated in the driver seat of ${pick(i.carColor)} ${pick(i.carModel)}.`) :
+        (ar ? `واقف خارج ${pick(i.carModel)} بلون ${pick(i.carColor)}.` : `Standing outside beside a ${pick(i.carColor)} ${pick(i.carModel)}.`),
+      pick(i.light),
+      ar ? 'كل ظل وانعكاس ولمعة عين مرتبط بمصدر موجود واتجاه وشدة منطقية؛ لا إضاءة تعبئة أو ارتداد أبيض بلا مصدر، والثوب يعكس الضوء فقط.' :
+        'Every shadow, catchlight and reflection must originate from a physically plausible light source, direction and intensity. White clothing reflects existing light; no invented fill.',
+      optional(ar ? 'تفاصيل مكانية مرئية: ' : 'Visible environment: ', close ? [] : i.cabins),
+      optional(ar ? 'تفاصيل ثانوية: ' : 'Secondary items: ', close ? [] : i.cabinArtifacts),
+      optional(ar ? 'سطوح خلفية: ' : 'Background: ', close ? [] : i.clutters),
+      optional(ar ? 'شاشات ظاهرة: ' : 'Visible screens: ', close ? [] : i.dashUis),
+      optional(ar ? 'جو محلي: ' : 'Local atmosphere: ', i.microWeathers)
+    ]);
+    append(ar ? 'ضوابط واقعية نهائية' : 'FINAL REALISM CHECK', [
+      ar ? 'لا أيدٍ إضافية، لا تفاصيل خارج مجال الكاميرا، لا تجميل للهوية أو وهج غير مبرر، ولا تأطير إعلاني للسيارة.' :
+        'No extra hands, off-frame details, identity retouching, unmotivated glow or automotive-commercial framing.'
+    ]);
+    return normalized(sections.join('\n\n'));
+  };
+  return { ar: build('ar'), en: build('en') };
 }
