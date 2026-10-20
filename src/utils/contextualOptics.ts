@@ -32,9 +32,11 @@ export function resolveContextualOptics(scene: BuildInput): ContextualOptics {
   let { light, angle, pose, hair, accessory } = scene;
 
   if (inside && directMidday.has(light.id)) {
-    light = appendLight(light,
-      'سقف السيارة المعتم يحجب الأشعة العمودية المباشرة؛ تتبع الإبرازات والظلال اتجاه الزجاج المعرض فعلياً للشمس ولا تُفرض ظلال شمس عمودية خارجية على الوجه.',
-      'The opaque vehicle roof blocks direct overhead rays; a clear windshield is used only when it is the actual exposed path, while highlights and cabin shadows follow the selected source and real glazing, never compulsory outdoor vertical sun shadows.');
+    light = {
+      ...light,
+      ar: 'ضوء ظهيرة قاسٍ عالي التباين يدخل فقط من الزجاج الأمامي أو الفتحات المعرضة فعلياً، مع ظلال اتجاهية تحت الأنف والحاجب والذقن؛ سقف السيارة المعتم يحجب الأشعة المباشرة من الأعلى وأي مسار شمسي عمودي خارجي.',
+      en: 'harsh high-contrast midday daylight entering only through the genuinely exposed windshield or other glazing, with directional shadows under the nose, brow and chin; the opaque vehicle roof blocks direct overhead rays and any vertical outdoor sun path.',
+    };
     notes.push('roof_shades_overhead_sun');
   } else if (inside && solar.has(light.id)) {
     light = appendLight(light,
