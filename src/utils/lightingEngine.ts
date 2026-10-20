@@ -24,6 +24,7 @@ export interface LocationLightingAnalysis {
     | 'residential'
     | 'gas_station'
     | 'underground_parking'
+    | 'covered_parking'
     | 'coffee_drive_thru'
     | 'desert_highway'
     | 'mosque_parking'
@@ -59,6 +60,9 @@ export function analyzeLocationLighting(
     category = 'gas_station';
   }
   // 2. Underground parking / basement
+  else if (locId === 46) {
+    category = 'covered_parking';
+  }
   else if (locId === 10) {
     category = 'underground_parking';
   }
@@ -67,7 +71,7 @@ export function analyzeLocationLighting(
     category = 'coffee_drive_thru';
   }
   // 4. Car wash
-  else if (locId === 9) {
+  else if (locId === 9 || locId === 51) {
     category = 'car_wash';
   }
   // 5. Desert highway / desert sands / dunes
@@ -79,11 +83,11 @@ export function analyzeLocationLighting(
     category = 'mosque_parking';
   }
   // 7. Rural agricultural road / palm farms
-  else if (locId === 14 || locId === 33) {
+  else if (locId === 14 || locId === 33 || locId === 59) {
     category = 'rural_road';
   }
   // 8. Commercial strip / shops / clinics / inspection
-  else if (locId === 8 || locId === 17 || locId === 19 || locId === 27 || locId === 35 || locId === 39) {
+  else if (locId === 8 || locId === 17 || locId === 19 || locId === 27 || locId === 35 || locId === 39 || [42,43,44,45,47,48,49,53,57].includes(locId)) {
     category = 'commercial_strip';
   }
   // 9. Urban infrastructure (flyover / bridge / service road / dead-end)
@@ -91,7 +95,7 @@ export function analyzeLocationLighting(
     category = 'urban_infrastructure';
   }
   // 10. Coastal beach
-  else if (locId === 38) {
+  else if ([38,50,55].includes(locId)) {
     category = 'coastal_open';
   }
   // Default: Residential street / neighborhood
@@ -102,6 +106,30 @@ export function analyzeLocationLighting(
   const recommendations: LightRecommendation[] = [];
 
   switch (category) {
+    case 'covered_parking':
+      recommendations.push(
+        {
+          id: 'basement_tubes', nameAr: 'مصابيح سقف المواقف متعددة الطوابق',
+          nameEn: 'visible overhead parking-level strip lights',
+          tag: 'إنارة سقف فعلية', badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+          reasonAr: 'مصابيح السقف البيضاء الواقعية تضيء السيارة من الأعلى؛ يظل الضوء النهاري ممكنًا من الجوانب المفتوحة فقط.',
+          reasonEn: 'Visible overhead fixtures illuminate the car, while daylight may enter only through open sides.',
+          kelvin: '4000K–5000K', lux: 'medium',
+          physicsCuesAr: 'انعكاسات سقفية خطية وظلال تحت الحواجب؛ لا ضوء تعبئة خفي.',
+          physicsCuesEn: 'linear overhead reflections and downward shadows; no unseen fill',
+        },
+        {
+          id: 'soft_morning', nameAr: 'ضوء نهار من جوانب المواقف المفتوحة',
+          nameEn: 'daylight from open sides of parking deck',
+          tag: 'عندما يكون الوقت نهارًا', badgeColor: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+          reasonAr: 'يسمح انفتاح الجوانب بدخول ضوء السماء، دون ادعاء اختراق أرضية خرسانية.',
+          reasonEn: 'Soft sky light enters only through the open parking-deck sides.',
+          kelvin: '5000K–6500K', lux: 'medium',
+          physicsCuesAr: 'ضوء جانبي من فتحات المبنى؛ الأسقف الخرسانية تحجب ضوء الأعلى.',
+          physicsCuesEn: 'side daylight through open deck walls, with ceiling blocking overhead sun',
+        }
+      );
+      break;
     case 'gas_station':
       recommendations.push(
         {
@@ -588,7 +616,42 @@ export function analyzeLocationLighting(
       break;
   }
 
-  const primaryRecommendedLightId = recommendations[0]?.id || 'sodium_street';
+  // Resolve actual time before writing a lighting prompt. Category recommendations
+  // remain available, but auto-selection must not impose night lamps at noon.
+  let primaryRecommendedLightId = recommendations[0]?.id || 'sodium_street';
+  if (timeOfDay === 'day') {
+    primaryRecommendedLightId = category === 'underground_parking' ? 'basement_tubes'
+      : category === 'gas_station' ? 'station_canopy'
+      : 'soft_morning';
+  } else if (timeOfDay === 'sunset') {
+    primaryRecommendedLightId = category === 'underground_parking' || category === 'covered_parking'
+      ? 'basement_tubes' : 'golden_hour';
+  } else if (timeOfDay === 'night') {
+    primaryRecommendedLightId = category === 'underground_parking' || category === 'covered_parking'
+      ? 'basement_tubes'
+      : category === 'gas_station' ? 'station_canopy'
+      : category === 'coffee_drive_thru' ? 'ambient_drive_thru'
+      : category === 'desert_highway' ? 'pure_moonlight'
+      : category === 'rural_road' ? 'single_distant_lamp'
+      : category === 'residential' ? 'sodium_street'
+      : 'led_modern_street';
+  } else if (category === 'urban_infrastructure') {
+    primaryRecommendedLightId = 'led_modern_street';
+  }
+  // Surface the chosen light in the recommended UI even when time changes
+  // the original category ordering. Never silently select a hidden option.
+  if (!recommendations.some(x => x.id === primaryRecommendedLightId)) {
+    const selected = LIGHTING_OPTIONS.find(x => x.id === primaryRecommendedLightId);
+    if (selected) recommendations.unshift({
+      id: selected.id, nameAr: selected.ar, nameEn: selected.en,
+      tag: 'متوافق مع الوقت', badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+      reasonAr: 'اختير المصدر حسب الوقت والموقع، مع الالتزام بمصادر الضوء الظاهرة أو الممكنة هندسيًا.',
+      reasonEn: 'Chosen for the selected time and plausible local illumination geometry.',
+      kelvin: 'حسب المصدر الفعلي', lux: 'medium',
+      physicsCuesAr: 'ضوء وظلال يتبعان موقع المصدر الحقيقي',
+      physicsCuesEn: 'physical source direction and natural shadow falloff'
+    });
+  }
 
   const sensorPhysicsNoteAr = isOutside
     ? 'اللقطة خارج السيارة: يعتمد المستشعر على الإضاءة المحيطة المباشرة بارتفاع زاوية السيلفي الممسوكة باليد (Handheld Perspective) مع تراجع واقعي للضوء في الخلفية وفق قانون التربيع العكسي الفيزيائي وتجنب أي ضوء استوديو صناعي.'
