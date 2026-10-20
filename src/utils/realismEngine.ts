@@ -534,7 +534,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   sanitizedFabrics = sanitizedFabrics
     .filter(x => !(isOutside && x.id === 'seat_hip_creases'))
     .map(x => x.id === 'collar_tilt_tension' && isOutside
-      ? { ...x, ar: 'تغير طفيف في ثنيات الياقة بسبب حركة الرقبة والجسم، دون حزام أمان', en: 'Subtle collar movement from neck rotation and natural body movement, without seatbelt tension' }
+      ? { ...x, ar: 'تغير طفيف في ثنيات الياقة بسبب حركة الرقبة والجسم بشكل طبيعي', en: 'Subtle collar movement from neck rotation and natural outdoor body movement' }
       : x);
 
   // Backlit cartilage translucency must be conditional; reflected light from
