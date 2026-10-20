@@ -554,7 +554,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   const sanitizedAnatomicalExpr = input.anatomicalExpr.id === 'sun_squint_lines'
     ? { ...input.anatomicalExpr,
       ar: isDirectSun ? 'تضيّق طبيعي خفيف للجفون بسبب وهج الشمس دون إضافة تجاعيد جديدة' : 'جفون مرتاحة وتعبير عفوي دون ضوء شمس مفترض',
-      en: isDirectSun ? 'Natural mild eyelid squint from direct sun, without invented wrinkles' : 'Relaxed candid eyelids without assumed sun glare' }
+      en: isDirectSun ? 'Natural mild eyelid squint from direct sun, without invented wrinkles' : 'Relaxed candid eyelids without assumed direct sunlight' }
     : input.anatomicalExpr;
 
   // Prevent redundant off-frame descriptions from noise or UI modules.
