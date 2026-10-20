@@ -182,3 +182,85 @@ test('all locations preserve zone constraints across frames and lighting', async
     }
   }
 });
+
+
+test('sixty grounded locations have unique numeric IDs and valid scene zones', async () => {
+  const { LOCATIONS } = await import('../src/data/studioData');
+  assert.equal(LOCATIONS.length, 60);
+  assert.equal(new Set(LOCATIONS.map(x => x.id)).size, LOCATIONS.length);
+  assert.equal(LOCATIONS.filter(x => x.zone === 'inside').length, 30);
+  assert.equal(LOCATIONS.filter(x => x.zone === 'outside').length, 30);
+  for (const loc of LOCATIONS) {
+    assert.ok(loc.ar.trim().length > 20);
+    assert.ok(loc.en.trim().length > 25);
+  }
+});
+
+test('military-style handheld radio obeys exterior and close-frame constraints', async () => {
+  const { DAILY_LIFE_CLUTTER, buildPrompt } = await import('../src/data/studioData');
+  const radio = DAILY_LIFE_CLUTTER.find(x => x.id === 'rugged_military_radio');
+  assert.ok(radio);
+  const inside = fixture('inside', 'sodium_street');
+  inside.frame = option('half_body');
+  inside.clutters = [radio];
+  const accepted = validateAndSanitizePhysics(inside).sanitized;
+  assert.equal(accepted.clutters.some(x => x.id === radio.id), true);
+  assert.match(buildPrompt(accepted).en, /handheld two-way field radio/);
+  inside.frame = option('close_face');
+  const close = validateAndSanitizePhysics(inside).sanitized;
+  assert.equal(close.clutters.some(x => x.id === radio.id), false);
+  assert.doesNotMatch(buildPrompt(close).en, /handheld two-way field radio/);
+  inside.loc = { ...inside.loc, id: 51, zone: 'outside' };
+  inside.frame = option('half_body');
+  const outside = validateAndSanitizePhysics(inside).sanitized;
+  assert.equal(outside.clutters.length, 0);
+  assert.doesNotMatch(buildPrompt(outside).en, /handheld two-way field radio/);
+});
+
+test('heavy tint changes only the vehicle glass and survives prompt assembly', async () => {
+  const { WINDOW_TINTS, buildPrompt } = await import('../src/data/studioData');
+  for (const id of ['tint_extra_dark_05', 'tint_dark_10']) {
+    const tint = WINDOW_TINTS.find(x => x.id === id);
+    assert.ok(tint);
+    const inside = fixture('inside', 'sodium_street');
+    inside.tint = tint;
+    const scene = validateAndSanitizePhysics(inside).sanitized;
+    assert.match(buildPrompt(scene).en, /visible light transmission/);
+    assert.match(buildPrompt(scene).en, /windshield remains clear/);
+    const outside = fixture('outside', 'sodium_street');
+    outside.tint = tint;
+    outside.frame = option('half_body');
+    const fromOutside = validateAndSanitizePhysics(outside).sanitized;
+    assert.match(buildPrompt(fromOutside).en, /Only if the vehicle windows are visible/);
+    assert.match(buildPrompt(fromOutside).en, /does not darken the face/);
+    outside.frame = option('close_face');
+    assert.doesNotMatch(buildPrompt(validateAndSanitizePhysics(outside).sanitized).en, /visible light transmission/);
+  }
+});
+
+test('clutter remains incidental and physically bounded to two objects', async () => {
+  const { DAILY_LIFE_CLUTTER } = await import('../src/data/studioData');
+  const scene = fixture('inside', 'sodium_street');
+  scene.frame = option('half_body');
+  scene.clutters = DAILY_LIFE_CLUTTER.slice(0, 6);
+  const { report, sanitized } = validateAndSanitizePhysics(scene);
+  assert.equal(sanitized.clutters.length, 2);
+  assert.ok(report.warnings.some(x => x.id === 'clutter_visibility_budget'));
+});
+
+test('new locations select compatible light for explicit daypart', async () => {
+  const { LOCATIONS } = await import('../src/data/studioData');
+  const { analyzeLocationLighting } = await import('../src/utils/lightingEngine');
+  const { optionLockReason } = await import('../src/utils/optionCompatibility');
+  for (const loc of LOCATIONS.filter(x => x.id >= 41)) {
+    for (const time of ['day','night','sunset'] as const) {
+      const lighting = analyzeLocationLighting(loc.id, time);
+      const reason = optionLockReason('lighting', lighting.primaryRecommendedLightId, {
+        zone: loc.zone, time, lightingId: lighting.primaryRecommendedLightId,
+        poseId: 'arm_out', clothId: 'thobe', selectedAirflowIds: [], selectedErgonomicIds: []
+      });
+      assert.equal(reason, null, loc.id + ' ' + time + ' ' + lighting.primaryRecommendedLightId);
+      assert.ok(lighting.recommendations.some(x => x.id === lighting.primaryRecommendedLightId));
+    }
+  }
+});
