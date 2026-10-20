@@ -75,3 +75,21 @@ test('interior headrest does not default to impossible highest setting', () => {
   const { sanitized } = validateAndSanitizePhysics(scene);
   assert.equal(sanitized.heightCue.id, 'headrest_adjusted');
 });
+
+test('external glass tint cannot alter outdoor face illumination', () => {
+  const scene = fixture('outside', 'sodium_street');
+  scene.tint = option('blackout');
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  assert.equal(sanitized.tint.id, 'exterior_glass_only');
+});
+
+test('artificial bokeh and unverified face details are suppressed', () => {
+  const scene = fixture('inside', 'basement_tubes');
+  scene.inAppArtifacts = [option('instant_snap_bokeh'), option('snap_night_grain')];
+  scene.skinNuances = [option('ref_freckles_moles')];
+  scene.opticals = [option('fake_portrait_blur'), option('realistic_noise')];
+  const { sanitized } = validateAndSanitizePhysics(scene);
+  assert.deepEqual(sanitized.inAppArtifacts.map(x => x.id), ['snap_night_grain']);
+  assert.deepEqual(sanitized.skinNuances, []);
+  assert.deepEqual(sanitized.opticals.map(x => x.id), ['realistic_noise']);
+});
