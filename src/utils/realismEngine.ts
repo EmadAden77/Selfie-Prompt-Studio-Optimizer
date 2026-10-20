@@ -1,5 +1,5 @@
-import { BuildInput, Opt, Loc } from '../types/studio';
-const SUBJECT_HEIGHT_CM = 193;
+import { BuildInput, Opt, Loc, SUBJECT_HEIGHT_CM } from '../types/studio';
+
 
 export interface PhysicalWarning {
   id: string;
