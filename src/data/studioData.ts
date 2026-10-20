@@ -592,5 +592,6 @@ ${interiorPhysicsEn}
 🚫 Avoid identity changes, invented face details, fake studio lighting, synthetic skin, impossible hands, and car-commercial framing.
 📐 Target Aspect Ratio: ${i.aspect.en}.`;
 
-  return { ar, en };
+  const clean = (v: string) => v.replace(/\b(?:193|194|195)\s*cm\b/gi, SUBJECT_HEIGHT_CM + 'cm').replace(/\b(?:83|88)\s*kg\b/gi, SUBJECT_WEIGHT_KG + 'kg').replace(/STRICTLY MANDATORY|STRICT REQUIREMENT/gi, '').replace(/\n{3,}/g, '\n\n');
+  return { ar: clean(ar), en: clean(en) };
 }
