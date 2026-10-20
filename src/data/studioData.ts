@@ -561,6 +561,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
       inside ? (ar ? `داخل مقعد سائق ${pick(i.carModel)} بلون ${pick(i.carColor)}.` : `Seated in the driver seat of ${pick(i.carColor)} ${pick(i.carModel)}.`) :
         (ar ? `واقف خارج ${pick(i.carModel)} بلون ${pick(i.carColor)}.` : `Standing outside beside a ${pick(i.carColor)} ${pick(i.carModel)}.`),
       pick(i.light),
+      i.tint.en.trim() ? pick(i.tint) : undefined,
       ar ? 'كل ظل وانعكاس ولمعة عين مرتبط بمصدر موجود واتجاه وشدة منطقية؛ لا إضاءة تعبئة أو ارتداد أبيض بلا مصدر، والثوب يعكس الضوء فقط.' :
         'Every shadow, catchlight and reflection must originate from a physically plausible light source, direction and intensity. White clothing reflects existing light; no invented fill.',
       optional(ar ? 'تفاصيل مكانية مرئية: ' : 'Visible environment: ', close ? [] : i.cabins),
