@@ -159,9 +159,9 @@ export const ANATOMICAL_EXPRESSIONS: Opt[] = [
 ];
 
 export const HEIGHT_CUES: Opt[] = [
-  { id: "headrest_max", ar: "مسند الرأس مرفوع لأعلى نقطة (ملاءمة طول ${SUBJECT_HEIGHT_CM} سم)", en: "car seat headrest visibly extended to its highest setting behind the tall neck" },
-  { id: "auto_scale", ar: "المقعد مرجع للخلف لاستيعاب الساقين الطويلتين", en: "driver seat naturally pushed back to accommodate tall ${SUBJECT_HEIGHT_CM}cm frame, natural broad shoulder span" },
-  { id: "tall_roofline", ar: "الرأس قريب نسبياً من بطانة سقف السيارة بالداخل", en: "head clearly positioned near the vehicle roof-liner emphasizing tall ${SUBJECT_HEIGHT_CM}cm stature" },
+  { id: "headrest_max", ar: "مسند الرأس مرفوع لأعلى نقطة (ملاءمة طول 193 سم)", en: "car seat headrest visibly extended to its highest setting behind the tall neck" },
+  { id: "auto_scale", ar: "المقعد مرجع للخلف لاستيعاب الساقين الطويلتين", en: "driver seat naturally pushed back to accommodate tall 193cm frame, natural broad shoulder span" },
+  { id: "tall_roofline", ar: "الرأس قريب نسبياً من بطانة سقف السيارة بالداخل", en: "head clearly positioned near the vehicle roof-liner emphasizing tall 193cm stature" },
   { id: "long_arm_reach", ar: "امتداد ذراع سيلفي طويل يعطي زاوية رؤية واسعة للكابينة", en: "extended long-reach arm selfie creating wider visual perspective inside cabin" },
   { id: "seatbelt_geometry", ar: "حزام الأمان ممتد بزاوية حادة من القائم ليغطي الصدر العريض", en: "seatbelt pulling taut at a distinct downward acute angle from high B-pillar mount across broad chest" },
   { id: "elbow_door_rest", ar: "الساعد الطويل مستند بارتياح على بطانة الباب العلوية", en: "tall athletic forearm and elbow resting naturally on the padded top window ledge of driver door" },
@@ -171,7 +171,7 @@ export const SKIN_NUANCES: Opt[] = [
   { id: "ref_freckles_moles", ar: "نمش المرجع الخفيف ونقاط الجلد الطبيعية بالوجنتين والأنف", en: "subtle organic sun freckles and micro-skin texture across cheeks and bridge of nose exactly matching reference photo" },
   { id: "t_zone_sheen", ar: "لمعة طبيعية خفيفة من دفء الجو على الأنف والجبين", en: "natural subtle T-zone skin hydration sheen on forehead and nose bridge from warm ambient air" },
   { id: "stray_beard_hairs", ar: "شعيرات لحية طبيعية غير مقصوصة بمسطرة ليزر على الرقبة", en: "natural organic stray beard hairs along the lower neck and jawline matching reference un-lasered beard contour" },
-  { id: "wrist_vein_athletic", ar: "أوردة يد ومعصم رياضية خفيفة مع مسكة الجوال (${SUBJECT_WEIGHT_KG} كجم)", en: "subtle athletic vascularity and wrist sinew definition on selfie hand matching lean ${SUBJECT_WEIGHT_KG}kg physique" },
+  { id: "wrist_vein_athletic", ar: "أوردة يد ومعصم رياضية خفيفة مع مسكة الجوال (83 كجم)", en: "subtle athletic vascularity and wrist sinew definition on selfie hand matching lean 83kg physique" },
 ];
 
 export const SUBSURFACE_PHYSICS: Opt[] = [
@@ -181,7 +181,7 @@ export const SUBSURFACE_PHYSICS: Opt[] = [
 ];
 
 export const FABRIC_PHYSICS: Opt[] = [
-  { id: "seat_hip_creases", ar: "كسرات جلوس حقيقية على جانبي الحوض لقماش الثوب (قامة ${SUBJECT_HEIGHT_CM} سم)", en: "organic horizontal tension creases and micro-folds radiating across hips and lap suited for ${SUBJECT_HEIGHT_CM}cm seated posture" },
+  { id: "seat_hip_creases", ar: "كسرات جلوس حقيقية على جانبي الحوض لقماش الثوب (قامة 193 سم)", en: "organic horizontal tension creases and micro-folds radiating across hips and lap suited for 193cm seated posture" },
   { id: "collar_tilt_tension", ar: "انحناء خفيف للياقة القلاب المشدودة مع حركة الرقبة أو الحزام", en: "slight organic asymmetric tilt of thobe turnover collar responding naturally to neck rotation and seatbelt tension" },
   { id: "fabric_weave_macro", ar: "ظهور خيوط نسيج التيترون أو السلك الياباني المنسوج بنعومة فائقة", en: "tactile authentic Japanese cotton-poly blend thobe fabric weave with realistic micro-thread texture" },
 ];
@@ -220,11 +220,11 @@ export const CABIN_ARTIFACTS: Opt[] = [
   { id: "sunroof_glass_pocket", ar: "نظارة شمسية مستقرة في الحافظة العلوية ببطانة السقف بجوار لمبة القراءة", en: "designer sunglasses nestled inside flip-down ceiling sunglass compartment near interior map lights" },
 ];
 
-// 4. لغة جسد القامة الفارهة ${SUBJECT_HEIGHT_CM} سم
+// 4. لغة جسد القامة الفارهة 193 سم
 export const TALL_ERGONOMICS: Opt[] = [
   { id: "head_tilt_inward", ar: "إمالة عفوية للرأس للداخل لتفادي إطار الباب العلوي ووضع الوجه بالمركز", en: "subtle natural inward tilt of tall head and neck fitting comfortably under roofline curve, centering face in frame" },
   { id: "forearm_span_wheel", ar: "الساعد الرياضي الطويل مستقر بعرض مقود السيارة مع بروز تفاصيل الساعة", en: "long athletic vascular forearm resting flat across top curve of steering wheel showcasing steel sports watch" },
-  { id: "roof_handle_grip", ar: "يد يسارية مستندة بارتياح على مقبض السقف العلوي والأخرى تلتقط السيلفي", en: "left hand gripping upper ceiling grab handle in relaxed stretch suited for ${SUBJECT_HEIGHT_CM}cm frame while right hand holds phone" },
+  { id: "roof_handle_grip", ar: "يد يسارية مستندة بارتياح على مقبض السقف العلوي والأخرى تلتقط السيلفي", en: "left hand gripping upper ceiling grab handle in relaxed stretch suited for 193cm frame while right hand holds phone" },
 ];
 
 // 5. عيوب ومعالجة كاميرا السناب شات
@@ -254,7 +254,7 @@ export const WINDOW_TINTS: Opt[] = [
 ];
 
 export const GRIP_MOTION_NUANCES: Opt[] = [
-  { id: "natural_arm_stretch", ar: "أكتاف مائلة طبيعياً مع امتداد ذراع السيلفي الطويل (${SUBJECT_HEIGHT_CM} سم)", en: "asymmetric shoulder tilt showing physical strain of ${SUBJECT_HEIGHT_CM}cm tall arm extending phone at maximum length" },
+  { id: "natural_arm_stretch", ar: "أكتاف مائلة طبيعياً مع امتداد ذراع السيلفي الطويل (193 سم)", en: "asymmetric shoulder tilt showing physical strain of 193cm tall arm extending phone at maximum length" },
   { id: "stray_finger_corner", ar: "طرف خفيف جداً من حافة إصبع السبابة أو كفر الجوال بزاوية الكادر", en: "subtle accidental tip of index finger or matte phone case edge intruding slightly in bottom corner" },
   { id: "steering_hand_microblur", ar: "اهتزاز حركة بطيء خفيف على اليد الممسكة بالمقود", en: "slight candid micro-motion blur on the off-hand resting on steering wheel while selfie hand stays sharp" },
 ];
@@ -272,7 +272,7 @@ export const OPTICAL_IMPERFECTIONS: Opt[] = [
 ];
 
 export const CABIN_DETAILS: Opt[] = [
-  { id: "large_hand_gear", ar: "يد كبيرة تحتضن مقبض القير بعفوية تتناسب مع طول ${SUBJECT_HEIGHT_CM} سم", en: "large hand resting naturally on center leather gear shifter suited for ${SUBJECT_HEIGHT_CM}cm stature" },
+  { id: "large_hand_gear", ar: "يد كبيرة تحتضن مقبض القير بعفوية تتناسب مع طول 193 سم", en: "large hand resting naturally on center leather gear shifter suited for 193cm stature" },
   { id: "tissue_box_console", ar: "علبة مناديل مربعة مستقرة على الكونسول الوسطي", en: "square tissue box casually placed near center console cup holders" },
   { id: "loose_usb_cable", ar: "كابل شاحن أصلي ملفوف بعفوية قرب فتحات المكيف", en: "loose USB braided charging cable casually snaking near AC air vents" },
 ];
