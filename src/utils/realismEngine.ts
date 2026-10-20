@@ -1,4 +1,5 @@
 import { optionLockReason } from './optionCompatibility';
+import { resolveContextualOptics } from './contextualOptics';
 import { analyzeLocationLighting } from './lightingEngine';
 import { LIGHTING_OPTIONS } from '../data/studioData';
 import { BuildInput, Opt, Loc, SUBJECT_HEIGHT_CM } from '../types/studio';
@@ -554,7 +555,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
 
   // An observed expression may involve normal lid narrowing, never newly
   // invented crow feet or assumptions of sun glare at night.
-  const sanitizedAnatomicalExpr = input.anatomicalExpr.id === 'sun_squint_lines'
+  let sanitizedAnatomicalExpr = input.anatomicalExpr.id === 'sun_squint_lines'
     ? { ...input.anatomicalExpr,
       ar: isDirectSun ? 'تضيّق طبيعي خفيف للجفون بسبب وهج الشمس دون إضافة تجاعيد جديدة' : 'جفون مرتاحة وتعبير عفوي دون ضوء شمس مفترض',
       en: isDirectSun ? 'Natural mild eyelid squint from direct sun, without invented wrinkles' : 'Relaxed candid eyelids without assumed direct sunlight' }
@@ -691,6 +692,67 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   sanitizedSubsurfaces = gate('subsurfaces', sanitizedSubsurfaces);
   const safeGripMotions = gate('gripMotions', sanitizedGripMotions);
 
+  // Context-dependent visual geometry must be resolved from EFFECTIVE light,
+  // not from the originally requested light before time-of-day reconciliation.
+  const contextual = resolveContextualOptics({
+    ...input, light: sanitizedLight, pose: sanitizedPose, tint: sanitizedTint,
+  });
+  sanitizedLight = contextual.light;
+  sanitizedPose = contextual.pose;
+
+  if (contextual.notes.includes('roof_shades_overhead_sun')) {
+    warnings.push({
+      id: 'roof_sun_path_corrected', level: 'auto-correction',
+      titleAr: 'تصحيح مسار أشعة الشمس داخل السيارة',
+      titleEn: 'Midday cabin sun direction corrected',
+      descAr: 'السقف يحجب أشعة الشمس العمودية، ويجب أن يأتي الضوء من الزجاج المتاح حسب اتجاه السيارة.',
+      descEn: 'Sunlight enters through physically exposed glazing, not through an opaque roof.',
+      field: 'light',
+    });
+  }
+  if (contextual.notes.includes('cabin_roof_camera_clearance')) {
+    warnings.push({
+      id: 'camera_roof_clearance_corrected', level: 'auto-correction',
+      titleAr: 'تقييد الزاوية العلوية بارتفاع المقصورة',
+      titleEn: 'Selfie angle constrained by roof clearance',
+      descAr: 'تتحول زاوية 45 درجة الإلزامية إلى زاوية مرتفعة ممكنة ضمن مسافة سقف السيارة.',
+      descEn: 'Do not demand an impossible overhead angle inside the vehicle.',
+      field: 'angle',
+    });
+  }
+  if (contextual.notes.includes('hair_headwear_clothing_conflict')) {
+    warnings.push({
+      id: 'headwear_outfit_resolved', level: 'auto-correction',
+      titleAr: 'منع غطاء رأس مخالف للملابس',
+      titleEn: 'Hair/headwear reconciled with outfit',
+      descAr: 'لا يتم إنشاء شماغ أو غترة عند اختيار ملابس من دون غطاء رأس.',
+      descEn: 'Headwear is not added without a matching selected outfit.',
+      field: 'hair',
+    });
+  }
+  if (isInside && input.anatomicalExpr.id === 'sun_squint_lines') {
+    sanitizedAnatomicalExpr = {
+      ...input.anatomicalExpr,
+      ar: 'تضيّق جفون طفيف فقط إذا وصل وهج فعلي من الزجاج إلى العينين؛ دون تجاعيد عمرية جديدة',
+      en: 'Slight natural eyelid narrowing only if genuine windshield glare reaches the eyes; do not invent age-related wrinkles',
+    };
+  }
+  // The report reflects the FINAL light and camera state, not the initial raw
+  // selection. The percentage is a heuristic of these encoded rules only.
+  if (sanitizedLight.id !== lightId) {
+    report.lightingProfile.category = ['harsh_noon','noon_sun','soft_morning','afternoon_diffuse','overcast_haze'].includes(sanitizedLight.id)
+      ? 'daylight' : ['golden_hour','sunset_glow','blue_hour'].includes(sanitizedLight.id)
+        ? 'golden_hour' : sanitizedLight.id === 'direct_flash'
+          ? 'flash' : ['basement_tubes','station_canopy','station_led'].includes(sanitizedLight.id)
+            ? 'artificial_indoor' : 'night';
+  }
+  if (isInside && ['harsh_noon','noon_sun'].includes(sanitizedLight.id)) {
+    report.lightingProfile.lightFalloff = 'Window-directed daylight with roof occlusion and tint-dependent side transmission';
+    report.lightingProfile.shadowBehavior = 'Directionally plausible windshield-lit highlights with cabin roof shade';
+  }
+  report.spatialProfile.armPerspective = isInside
+    ? 'One-handed front selfie with natural elbow bend and roof clearance'
+    : 'One-handed front selfie with relaxed arm and physically plausible perspective';
   const sanitized: BuildInput = {
     ...input,
     cabins: sanitizedCabins,
@@ -699,7 +761,10 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     clutters: sanitizedClutters,
     airflows: sanitizedAirflows,
     tallErgonomics: sanitizedTallErgonomics,
-    pose: sanitizedPose,
+    pose: contextual.pose,
+    angle: contextual.angle,
+    hair: contextual.hair,
+    accessory: contextual.accessory,
     subsurfaces: sanitizedSubsurfaces,
     screenCasts: sanitizedScreenCasts,
     light: sanitizedLight,
