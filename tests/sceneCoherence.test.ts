@@ -175,7 +175,7 @@ test('all locations preserve zone constraints across frames and lighting', async
           assert.equal(sanitized.cabins.some(o => o.id === 'large_hand_gear'),false);
           assert.equal(sanitized.fabrics.some(o => o.id === 'seat_hip_creases'),false);
         }
-        if (light === 'harsh_noon') {
+        if (['harsh_noon', 'noon_sun', 'golden_hour', 'afternoon_diffuse'].includes(sanitized.light.id)) {
           assert.equal(sanitized.microWeathers.some(o => o.id === 'winter_breath_fade'),false);
         }
       }
