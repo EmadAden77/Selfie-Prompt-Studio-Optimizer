@@ -490,7 +490,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
       const unique = [...new Set(entries.filter((x): x is string => Boolean(x?.trim())).map(x => x.trim()))];
       if (unique.length) sections.push(title + '\n' + unique.join('\n'));
     };
-    const pick = (o: Opt) => o[lang];
+    const pick = (o: Pick<Loc, 'ar' | 'en'>) => o[lang];
     const optional = (name: string, arr: Opt[]) => {
       const v = extras(arr, lang);
       return v ? name + v : undefined;
