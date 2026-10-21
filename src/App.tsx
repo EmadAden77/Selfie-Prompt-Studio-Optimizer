@@ -292,7 +292,9 @@ export default function App() {
   // Gemini proposes only the scene direction. The local plan remains active while
   // the request is pending or unavailable, so prompt generation never blocks.
   useEffect(() => {
-    if (cameraMode !== 'auto') {
+    // The full automatic prompt already contains Gemini's pose and camera plan.
+    // Avoid a second Gemini call that only duplicates that decision and increases 429 risk.
+    if (cameraMode !== 'auto' || useGeminiAutoEngine) {
       setDirectorStatus('local');
       return;
     }
@@ -353,7 +355,7 @@ export default function App() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [cameraMode, directorKey, directorContext, localDirectorPlan, loc, carModel, cloth, accessory, aspect, phone, light, storyline, tint, timeOfDay]);
+  }, [cameraMode, useGeminiAutoEngine, directorKey, directorContext, localDirectorPlan, loc, carModel, cloth, accessory, aspect, phone, light, storyline, tint, timeOfDay]);
 
   const automaticPromptKey = useMemo(
     () => JSON.stringify({ carModelId, carColorId, clothId, lightId, sceneScope }),
