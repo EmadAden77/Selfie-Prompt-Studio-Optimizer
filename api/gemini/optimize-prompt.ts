@@ -24,6 +24,9 @@ const MAX_NOTE_LENGTH = 2_000;
 const MAX_PROMPT_LENGTH = 12_000;
 const MAX_API_KEY_LENGTH = 300;
 const MAX_BODY_LENGTH = 32 * 1024;
+const GEMINI_MAX_ATTEMPTS = 3;
+const GEMINI_RETRY_DELAYS_MS = [500, 1_000, 2_000];
+
 const RATE_WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 30;
 
@@ -56,6 +59,34 @@ function providerErrorMetadata(error: unknown): JsonRecord {
 
 function logProviderError(label: string, error: unknown): void {
   console.error(label, providerErrorMetadata(error));
+}
+
+function providerStatusCode(error: unknown): number | null {
+  const status = asRecord(error).status;
+  return typeof status === 'number' ? status : null;
+}
+
+function isRetryableGeminiError(error: unknown): boolean {
+  const status = providerStatusCode(error);
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+async function generateContentWithRetry(
+  client: GoogleGenAI,
+  request: Parameters<GoogleGenAI['models']['generateContent']>[0],
+): Promise<Awaited<ReturnType<GoogleGenAI['models']['generateContent']>>> {
+  for (let attempt = 0; attempt < GEMINI_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await client.models.generateContent(request);
+    } catch (error: unknown) {
+      if (!isRetryableGeminiError(error) || attempt === GEMINI_MAX_ATTEMPTS - 1) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, GEMINI_RETRY_DELAYS_MS[attempt]));
+    }
+  }
+
+  throw new Error('Gemini request retry loop exited unexpectedly.');
 }
 
 function parseModelJson(text: string): JsonRecord {
@@ -233,7 +264,7 @@ async function handleQuickGenerate(body: JsonRecord, response: ApiResponse): Pro
     return;
   }
 
-  const result = await clientToUse.models.generateContent({
+  const result = await generateContentWithRetry(clientToUse, {
     model: 'gemini-3.8-flash',
     contents: userPrompt,
     config: { systemInstruction },
@@ -297,7 +328,7 @@ async function handleCallFlash(body: JsonRecord, response: ApiResponse): Promise
     userPrompt = 'اقترح سيناريو سيلفي عفوياً جديداً داخل أو بجانب السيارة دون اختلاق سمات للوجه.';
   }
 
-  const result = await ai.models.generateContent({
+  const result = await generateContentWithRetry(ai, {
     model: 'gemini-3.8-flash',
     contents: userPrompt,
     config: { systemInstruction },
@@ -340,7 +371,7 @@ async function handleScenario(body: JsonRecord, response: ApiResponse): Promise<
     '}',
   ].join('\n');
 
-  const result = await ai.models.generateContent({
+  const result = await generateContentWithRetry(ai, {
     model: 'gemini-3.8-flash',
     contents: promptText,
     config: { responseMimeType: 'application/json' },
@@ -381,7 +412,7 @@ async function handleOptimizePrompt(body: JsonRecord, response: ApiResponse): Pr
     '---END CONTEXT---',
   ].join('\n');
 
-  const result = await ai.models.generateContent({
+  const result = await generateContentWithRetry(ai, {
     model: 'gemini-3.8-flash',
     contents: instruction,
     config: { responseMimeType: 'application/json' },
@@ -451,9 +482,16 @@ export function createGeminiHandler(route: GeminiRoute) {
       await dispatch(route, body, response);
     } catch (error: unknown) {
       logProviderError('Gemini API error:', error);
-      response.status(502).json({
+      const status = providerStatusCode(error);
+      const isTransient = status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+      const responseStatus = isTransient && status ? status : 502;
+      response.status(responseStatus).json({
         success: false,
-        error: 'تعذر الاتصال بخدمة Gemini. حاول مرة أخرى لاحقاً.',
+        error: status === 503
+          ? 'خدمة Gemini مشغولة مؤقتاً. تمت إعادة المحاولة تلقائياً؛ حاول مجدداً بعد لحظات.'
+          : status === 429
+            ? 'تم تجاوز حد Gemini مؤقتاً. حاول لاحقاً.'
+            : 'تعذر الاتصال بخدمة Gemini. حاول مرة أخرى لاحقاً.',
       });
     }
   };
