@@ -281,7 +281,7 @@ app.post('/api/gemini/generate-prompt', async (req, res) => {
       'AUTHORITATIVE CLOTHING (English / Arabic): ' + clothEn + ' / ' + readOptionArabic(cloth, clothEn),
       'Choose every other detail automatically under the system rules.',
       'Return exactly the required JSON keys. Do not return markdown or explanations.',
-    ].join('\\n');
+    ].join('\n');
 
     const response = await clientToUse.models.generateContent({
       model: 'gemini-3.8-flash',
