@@ -513,3 +513,20 @@ test('manual camera mode remains available for saved sessions and advanced contr
   assert.equal(result.sanitized.angle.id, 'high_45');
   assert.equal(result.sanitized.cameraPlan, undefined);
 });
+
+
+test('automatic camera rationale follows an auto-corrected pose', async () => {
+  const { buildPrompt } = await import('../src/data/studioData');
+  const scene = fixture('inside', 'sodium_street');
+  scene.cameraMode = 'auto';
+  scene.pose = option('adjust_collar');
+  scene.cloth = { ...option('tee_black_ref'), cat: 'casual' };
+
+  const result = validateAndSanitizePhysics(scene);
+  const prompt = buildPrompt(result.sanitized).en;
+
+  assert.equal(result.sanitized.pose.id, 'arm_out');
+  assert.equal(result.sanitized.cameraPlan?.angle.id, 'candid_side');
+  assert.doesNotMatch(prompt, /collar gesture needs enough room/i);
+  assert.match(prompt, /candid half-body selfie/i);
+});
