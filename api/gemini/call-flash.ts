@@ -110,12 +110,26 @@ function allowRequest(request: ApiRequest, response: ApiResponse): boolean {
   response.setHeader('X-Content-Type-Options', 'nosniff');
 
   const origin = headerValue(request, 'origin');
-  if (origin && configuredCorsOrigins.size > 0 && !configuredCorsOrigins.has(origin)) {
+  const requestHost = (
+    headerValue(request, 'x-forwarded-host')
+    || headerValue(request, 'host')
+  ).split(',')[0].trim();
+  let sameOrigin = false;
+  if (origin && requestHost) {
+    try {
+      sameOrigin = new URL(origin).host === requestHost;
+    } catch {
+      sameOrigin = false;
+    }
+  }
+
+  const configuredOrigin = origin && configuredCorsOrigins.has(origin);
+  if (origin && configuredCorsOrigins.size > 0 && !configuredOrigin && !sameOrigin) {
     response.status(403).json({ success: false, error: 'Origin is not allowed.' });
     return false;
   }
 
-  if (origin && configuredCorsOrigins.has(origin)) {
+  if (origin && configuredOrigin) {
     response.setHeader('Access-Control-Allow-Origin', origin);
     response.setHeader('Vary', 'Origin');
     response.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
