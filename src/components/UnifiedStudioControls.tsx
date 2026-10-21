@@ -270,6 +270,16 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
   };
 
 
+  const toggleCameraMode = () => {
+    if (cameraMode === 'auto') {
+      setFrameId(cameraPlan.frame.id);
+      setAngleId(cameraPlan.angle.id);
+      setCameraMode('manual');
+      return;
+    }
+    setCameraMode('auto');
+  };
+
   const cardClass = darkMode
     ? 'bg-zinc-900/90 border-zinc-800 backdrop-blur-md'
     : 'bg-white border-zinc-200/90 shadow-sm';
@@ -868,7 +878,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
           </div>
           <button
             type="button"
-            onClick={() => setCameraMode(cameraMode === 'auto' ? 'manual' : 'auto')}
+            onClick={toggleCameraMode}
             className="text-[11px] px-2.5 py-1.5 rounded-lg bg-sky-900/60 hover:bg-sky-800 text-sky-200 border border-sky-700/60 transition font-semibold"
           >
             {cameraMode === 'auto' ? '⚙️ تحكم يدوي متقدم' : '✨ تفعيل المخرج التلقائي'}
