@@ -99,6 +99,9 @@ export function resolveAutoCameraPlan(scene: AutoCameraContext): AutoCameraPlan 
   } else if (frameId === 'wide_outside') {
     shotLabelAr = 'لقطة واسعة سياقية';
     shotLabelEn = 'wide contextual selfie';
+  } else if (angleId === 'candid_side') {
+    shotLabelAr = 'لقطة نصفية عفوية جانبية';
+    shotLabelEn = 'candid half-body selfie';
   } else {
     shotLabelAr = 'لقطة نصفية طبيعية';
     shotLabelEn = 'natural half-body selfie';
