@@ -878,7 +878,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
         {/* Framing & Aspect Ratio */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            {cameraMode === 'auto'} ? (
+            {cameraMode === 'auto' ? (
               <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 space-y-2">
                 <div className="flex items-center gap-2 text-sky-200 text-xs font-extrabold">
                   <span>✨</span>
@@ -957,7 +957,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
         {/* Pose and Angle */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-zinc-800/80">
           <div className="space-y-1.5">
-            {cameraMode === 'auto'} ? (
+            {cameraMode === 'auto' ? (
               <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 min-h-[88px]">
                 <div className="text-xs font-bold text-sky-200 mb-1">📐 زاوية التصوير التلقائية</div>
                 <div className="text-xs text-white font-semibold">{cameraPlan.angle.ar}</div>
