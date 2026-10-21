@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt, CameraMode, AutoSceneDirectorPlan, GeminiPromptResult } from './types/studio';
+import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt, CameraMode, AutoSceneDirectorPlan } from './types/studio';
 import {
   HAIR_STYLES,
   BEARD_STYLES,
@@ -47,7 +47,7 @@ import { copyToClipboard } from './utils/clipboard';
 import { geminiApiUrl } from './utils/geminiApi';
 import { resolveAutoCameraPlan } from './utils/autoCameraDirector';
 import { normalizeGeminiDirectorPlan, resolveAutoSceneDirector } from './utils/autoSceneDirector';
-import { normalizeGeminiPromptResult } from './utils/geminiPromptPolicy';
+import { normalizeGeminiPromptResult, type GeminiPromptResult } from './utils/geminiPromptPolicy';
 
 const STORAGE_KEY = 'selfie-prompt-studio-v11.0';
 
