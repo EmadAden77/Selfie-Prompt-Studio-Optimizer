@@ -10,6 +10,20 @@ export interface Opt {
   desc?: string;
 }
 
+export type CameraMode = 'auto' | 'manual';
+
+export interface AutoCameraPlan {
+  mode: 'auto';
+  frame: Opt;
+  angle: Opt;
+  shotLabelAr: string;
+  shotLabelEn: string;
+  focalLengthEquivalent: string;
+  distanceCm: number;
+  reasonAr: string;
+  reasonEn: string;
+}
+
 export interface Loc {
   id: number;
   zone: Zone;
@@ -75,6 +89,8 @@ export interface PresetMood {
 }
 
 export interface BuildInput {
+  cameraMode?: CameraMode;
+  cameraPlan?: AutoCameraPlan;
   timeOfDay?: 'auto' | 'day' | 'sunset' | 'night';
   loc: Loc;
   carModel: Opt;
