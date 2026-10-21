@@ -1,3 +1,3 @@
-import { createGeminiHandler } from '../src/server/geminiHandlers';
+import { createGeminiHandler } from './_lib/geminiHandlers';
 
 export default createGeminiHandler('health');
