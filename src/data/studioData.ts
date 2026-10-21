@@ -510,7 +510,13 @@ export function joinEn(list: Opt[], fallback = "none"): string {
 
 export function buildPrompt(i: BuildInput): { ar: string; en: string } {
   // The caller supplies a physics-sanitized scene. No additional invented details.
-  const inside = i.loc.zone === 'inside';
+  const requestedScope = i.sceneScope ?? 'auto';
+  const sceneLocation = requestedScope === 'inside'
+    ? (LOCATIONS.find(location => location.zone === 'inside') ?? i.loc)
+    : requestedScope === 'outside'
+      ? (LOCATIONS.find(location => location.zone === 'outside') ?? i.loc)
+      : i.loc;
+  const inside = sceneLocation.zone === 'inside';
   const close = i.frame.id === 'close_face';
     const extras = (a: Opt[], language: 'ar' | 'en') =>
     [...new Set(a.map(x => x[language].trim()).filter(x =>
@@ -582,10 +588,18 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
       optional(ar ? 'سياق اللحظة: ' : 'Candid story context: ', [i.storyline])
     ]);
     append(ar ? 'المكان والضوء الفيزيائي' : 'SCENE AND PHYSICAL LIGHTING', [
+      requestedScope === 'inside'
+        ? (ar ? 'نطاق التصوير المختار: داخل مقصورة السيارة فقط؛ لا يظهر الشخص خارجها.'
+              : 'Selected scene scope: inside the vehicle cabin only; the subject remains inside.')
+        : requestedScope === 'outside'
+          ? (ar ? 'نطاق التصوير المختار: خارج السيارة فقط؛ السيارة متوقفة بأمان والشخص خارج المقصورة.'
+                : 'Selected scene scope: outside the vehicle only; the vehicle is safely parked and the subject remains outside.')
+          : (ar ? 'نطاق التصوير: تلقائي؛ اختر داخل المقصورة أو خارج السيارة المتوقفة بما ينسجم مع المشهد.'
+                : 'Scene scope: automatic; choose inside the cabin or outside the safely parked vehicle coherently.'),
       inside
-        ? (ar ? `موقع توقف السيارة (سياق فقط، لا تُفرض تفاصيل خارج النوافذ): ${pick(i.loc)}.`
-              : `Parking location context, not a mandatory visible background: ${pick(i.loc)}.`)
-        : pick(i.loc),
+        ? (ar ? `موقع توقف السيارة (سياق فقط، لا تُفرض تفاصيل خارج النوافذ): ${pick(sceneLocation)}.`
+              : `Parking location context, not a mandatory visible background: ${pick(sceneLocation)}.`)
+        : pick(sceneLocation),
       inside
         ? (ar ? `جالس على مقعد سائق ${pick(i.carModel)}، ولا يُفرض لون الهيكل الخارجي في صورة من داخل المقصورة.`
               : `Seated in the driver seat of a ${pick(i.carModel)}; exterior body paint need not be visible in this interior selfie.`)
