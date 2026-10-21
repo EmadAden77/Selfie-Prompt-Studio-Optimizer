@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt, CameraMode, AutoSceneDirectorPlan } from './types/studio';
+import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt, CameraMode, AutoSceneDirectorPlan, SceneScope } from './types/studio';
 import {
   HAIR_STYLES,
   BEARD_STYLES,
@@ -47,6 +47,8 @@ import { copyToClipboard } from './utils/clipboard';
 import { geminiApiUrl } from './utils/geminiApi';
 import { resolveAutoCameraPlan } from './utils/autoCameraDirector';
 import { normalizeGeminiDirectorPlan, resolveAutoSceneDirector } from './utils/autoSceneDirector';
+import { normalizeGeminiPromptResult, type GeminiPromptResult } from './utils/geminiPromptPolicy';
+import { normalizeSceneScope } from './utils/sceneScope';
 
 const STORAGE_KEY = 'selfie-prompt-studio-v11.0';
 
@@ -92,6 +94,8 @@ interface StoredState {
   customPromptEn?: string;
   isCustomEdited?: boolean;
   autoLighting?: boolean;
+  useGeminiAutoEngine?: boolean;
+  sceneScope?: SceneScope;
   timeOfDay?: TimeOfDay;
 }
 
@@ -188,6 +192,13 @@ export default function App() {
   const [geminiDirectorKey, setGeminiDirectorKey] = useState('');
   const [directorStatus, setDirectorStatus] = useState<'local' | 'loading' | 'gemini' | 'fallback'>('local');
   const directorRequestRef = useRef(0);
+  const [geminiAutoPrompt, setGeminiAutoPrompt] = useState<GeminiPromptResult | null>(null);
+  const [geminiAutoPromptKey, setGeminiAutoPromptKey] = useState('');
+  const [geminiAutoPromptStatus, setGeminiAutoPromptStatus] = useState<'idle' | 'loading' | 'ready' | 'fallback'>('idle');
+  const [useGeminiAutoEngine, setUseGeminiAutoEngine] = useState(initial.useGeminiAutoEngine ?? true);
+  const [sceneScope, setSceneScope] = useState<SceneScope>(normalizeSceneScope(initial.sceneScope));
+  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
+  const geminiAutoPromptRequestRef = useRef(0);
 
   // Snapshot & Automatic Physical Realism Engine States
   const [studioSnapshot, setStudioSnapshot] = useState<StoredState | null>(null);
@@ -222,7 +233,7 @@ export default function App() {
       airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds, inAppArtifactIds, microWeatherIds,
       lang, darkMode, sessions,
       customPromptAr, customPromptEn, isCustomEdited,
-      autoLighting, timeOfDay
+      autoLighting, timeOfDay, useGeminiAutoEngine, sceneScope
     });
   }, [
     locId, carModelId, carColorId, clothId, accessoryId, poseId,
@@ -233,7 +244,7 @@ export default function App() {
     airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds, inAppArtifactIds, microWeatherIds,
     lang, darkMode, sessions,
     customPromptAr, customPromptEn, isCustomEdited,
-    autoLighting, timeOfDay
+    autoLighting, timeOfDay, useGeminiAutoEngine, sceneScope
   ]);
 
   const showToast = (msg: string) => {
@@ -281,7 +292,9 @@ export default function App() {
   // Gemini proposes only the scene direction. The local plan remains active while
   // the request is pending or unavailable, so prompt generation never blocks.
   useEffect(() => {
-    if (cameraMode !== 'auto') {
+    // The full automatic prompt already contains Gemini's pose and camera plan.
+    // Avoid a second Gemini call that only duplicates that decision and increases 429 risk.
+    if (cameraMode !== 'auto' || useGeminiAutoEngine) {
       setDirectorStatus('local');
       return;
     }
@@ -342,7 +355,71 @@ export default function App() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [cameraMode, directorKey, directorContext, localDirectorPlan, loc, carModel, cloth, accessory, aspect, phone, light, storyline, tint, timeOfDay]);
+  }, [cameraMode, useGeminiAutoEngine, directorKey, directorContext, localDirectorPlan, loc, carModel, cloth, accessory, aspect, phone, light, storyline, tint, timeOfDay]);
+
+  const automaticPromptKey = useMemo(
+    () => JSON.stringify({ carModelId, carColorId, clothId, lightId, sceneScope }),
+    [carModelId, carColorId, clothId, lightId, sceneScope]
+  );
+  const automaticPromptIsActive = useGeminiAutoEngine && geminiAutoPromptKey === automaticPromptKey && Boolean(geminiAutoPrompt);
+
+  // Gemini owns the automatic prompt. Only car, lighting, and clothing are sent as
+  // authoritative user choices; every other detail is selected under the strict policy.
+  useEffect(() => {
+    if (!useGeminiAutoEngine) {
+      setGeminiAutoPromptStatus('idle');
+      setGeminiAutoPrompt(null);
+      setGeminiAutoPromptKey('');
+      return;
+    }
+
+    const requestId = ++geminiAutoPromptRequestRef.current;
+    let cancelled = false;
+    setGeminiAutoPromptStatus('loading');
+    setGeminiAutoPrompt(null);
+    setGeminiAutoPromptKey('');
+
+    const timer = window.setTimeout(async () => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
+      try {
+        const describe = (value: Opt) => ({ id: value.id, ar: value.ar, en: value.en });
+        const response = await fetch(geminiApiUrl('/api/gemini/generate-prompt'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            car: describe(carModel),
+            carColor: describe(carColor),
+            light: describe(light),
+            cloth: describe(cloth),
+            sceneScope,
+          }),
+        });
+        const data = await response.json().catch(() => null);
+        const normalized = data?.success
+          ? normalizeGeminiPromptResult(data.prompt)
+          : null;
+        if (!response.ok || !normalized) {
+          throw new Error(data?.error || 'automatic_prompt_unavailable');
+        }
+        if (cancelled || requestId !== geminiAutoPromptRequestRef.current) return;
+        setGeminiAutoPrompt(normalized);
+        setGeminiAutoPromptKey(automaticPromptKey);
+        setGeminiAutoPromptStatus('ready');
+      } catch {
+        if (cancelled || requestId !== geminiAutoPromptRequestRef.current) return;
+        setGeminiAutoPromptStatus('fallback');
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [automaticPromptKey, carModel, carColor, cloth, light, sceneScope, useGeminiAutoEngine]);
 
   const autoCameraPlan = useMemo(
     () => resolveAutoCameraPlan({ loc, carModel, cloth, pose, aspect, phone, light, storyline, tint, directorPlan: activeDirectorPlan }),
@@ -379,7 +456,7 @@ export default function App() {
       beard, hair, heightCue, storyline, tint,
       opticals, cabins, skinNuances, appUis, gripMotions, dashUis,
       subsurfaces, fabrics, thermals, clutters,
-      airflows, screenCasts, cabinArtifacts, tallErgonomics, inAppArtifacts, microWeathers, timeOfDay
+      airflows, screenCasts, cabinArtifacts, tallErgonomics, inAppArtifacts, microWeathers, timeOfDay, sceneScope
     }),
     [
       loc, carModel, carColor, cloth, accessory, pose,
@@ -387,7 +464,7 @@ export default function App() {
       beard, hair, heightCue, storyline, tint,
       opticals, cabins, skinNuances, appUis, gripMotions, dashUis,
       subsurfaces, fabrics, thermals, clutters,
-      airflows, screenCasts, cabinArtifacts, tallErgonomics, inAppArtifacts, microWeathers, timeOfDay,
+      airflows, screenCasts, cabinArtifacts, tallErgonomics, inAppArtifacts, microWeathers, timeOfDay, sceneScope,
       cameraMode, autoCameraPlan, activeDirectorPlan
     ]
   );
@@ -412,7 +489,7 @@ export default function App() {
     opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds,
     dashUiIds, subsurfaceIds, fabricIds, thermalIds, clutterIds,
     airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds,
-    inAppArtifactIds, microWeatherIds, timeOfDay, autoLighting,
+    inAppArtifactIds, microWeatherIds, timeOfDay, autoLighting, sceneScope,
   });
   const lastSceneFingerprint = useRef(sceneFingerprint);
   useEffect(() => {
@@ -426,8 +503,21 @@ export default function App() {
     }
   }, [sceneFingerprint]);
 
-  const promptAr = isCustomEdited && customPromptAr ? customPromptAr : computedPrompt.ar;
-  const promptEn = isCustomEdited && customPromptEn ? customPromptEn : computedPrompt.en;
+  const promptSource = isCustomEdited
+    ? 'custom'
+    : automaticPromptIsActive
+      ? 'gemini'
+      : 'local';
+  const promptAr = isCustomEdited && customPromptAr
+    ? customPromptAr
+    : automaticPromptIsActive && geminiAutoPrompt
+      ? geminiAutoPrompt.promptAr
+      : computedPrompt.ar;
+  const promptEn = isCustomEdited && customPromptEn
+    ? customPromptEn
+    : automaticPromptIsActive && geminiAutoPrompt
+      ? geminiAutoPrompt.promptEn
+      : computedPrompt.en;
 
   const toggle = (id: string, list: string[], setter: React.Dispatch<React.SetStateAction<string[]>>) => {
     setter(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
@@ -452,7 +542,7 @@ export default function App() {
         beardId, hairId, heightCueId, storylineId, tintId,
         opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds, dashUiIds,
         subsurfaceIds, fabricIds, thermalIds, clutterIds,
-        airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds, inAppArtifactIds, microWeatherIds,
+        airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds, inAppArtifactIds, microWeatherIds, sceneScope,
         lang, darkMode, sessions,
         customPromptAr, customPromptEn, isCustomEdited
       });
@@ -496,6 +586,7 @@ export default function App() {
     if (studioSnapshot.tallErgonomicIds) setTallErgonomicIds(studioSnapshot.tallErgonomicIds);
     if (studioSnapshot.inAppArtifactIds) setInAppArtifactIds(studioSnapshot.inAppArtifactIds);
     if (studioSnapshot.microWeatherIds) setMicroWeatherIds(studioSnapshot.microWeatherIds);
+    if (studioSnapshot.sceneScope) setSceneScope(normalizeSceneScope(studioSnapshot.sceneScope));
     if (studioSnapshot.isCustomEdited !== undefined) setIsCustomEdited(studioSnapshot.isCustomEdited);
     if (studioSnapshot.customPromptAr) setCustomPromptAr(studioSnapshot.customPromptAr);
     if (studioSnapshot.customPromptEn) setCustomPromptEn(studioSnapshot.customPromptEn);
@@ -578,6 +669,7 @@ export default function App() {
     if (d.tallErgonomicIds) setTallErgonomicIds(d.tallErgonomicIds);
     if (d.inAppArtifactIds) setInAppArtifactIds(d.inAppArtifactIds);
     if (d.microWeatherIds) setMicroWeatherIds(d.microWeatherIds);
+    if (d.sceneScope) setSceneScope(normalizeSceneScope(d.sceneScope));
     setIsCustomEdited(false);
     setTab('gen');
     showToast(`✓ تم تفعيل سيناريو: ${preset.title}`);
@@ -596,7 +688,7 @@ export default function App() {
         beardId, hairId, heightCueId, storylineId, tintId,
         opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds, dashUiIds,
         subsurfaceIds, fabricIds, thermalIds, clutterIds,
-        airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds, inAppArtifactIds, microWeatherIds
+        airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds, inAppArtifactIds, microWeatherIds, sceneScope
       },
       customPromptAr: isCustomEdited ? customPromptAr : undefined,
       customPromptEn: isCustomEdited ? customPromptEn : undefined,
@@ -647,6 +739,7 @@ export default function App() {
     if (d.tallErgonomicIds) setTallErgonomicIds(d.tallErgonomicIds);
     if (d.inAppArtifactIds) setInAppArtifactIds(d.inAppArtifactIds);
     if (d.microWeatherIds) setMicroWeatherIds(d.microWeatherIds);
+    if (d.sceneScope) setSceneScope(normalizeSceneScope(d.sceneScope));
 
     if (s.customPromptAr && s.customPromptEn) {
       setCustomPromptAr(s.customPromptAr);
@@ -873,6 +966,71 @@ export default function App() {
                 )}
               </div>
 
+              <section className={`${card} border rounded-2xl p-4 md:p-5 space-y-3`} aria-labelledby="gemini-auto-heading">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div>
+                    <h2 id="gemini-auto-heading" className="font-extrabold text-sm">Gemini يكتب البرومبت تلقائياً</h2>
+                    <p className="text-[11px] text-zinc-400 mt-1">أنت تختار السيارة والإضاءة والملابس ومكان التصوير، والباقي يحدده Gemini ضمن قواعد الواقعية.</p>
+                  </div>
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-indigo-500/15 text-indigo-200 border border-indigo-500/30">4 مدخلات أساسية</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <label className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-zinc-300">السيارة</span>
+                    <select value={carModelId} onChange={e => setCarModelId(e.target.value)} className={`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50`}>
+                      {CAR_MODELS.map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-zinc-300">لون السيارة</span>
+                    <select value={carColorId} onChange={e => setCarColorId(e.target.value)} className={`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50`}>
+                      {CAR_COLORS.map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-zinc-300">الإضاءة</span>
+                    <select value={lightId} onChange={e => { setLightId(e.target.value); setAutoLighting(false); }} className={`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50`}>
+                      {(LIGHTING as Opt[]).map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5 sm:col-span-3">
+                    <span className="text-[11px] font-bold text-zinc-300">الملابس</span>
+                    <select value={clothId} onChange={e => setClothId(e.target.value)} className={`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50`}>
+                      {CLOTHES.map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5 sm:col-span-3">
+                    <span className="text-[11px] font-bold text-zinc-300">مكان التصوير</span>
+                    <select
+                      value={sceneScope}
+                      onChange={e => setSceneScope(normalizeSceneScope(e.target.value))}
+                      className={`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50`}
+                    >
+                      <option value="auto">تلقائي بواسطة Gemini (داخل أو خارج السيارة)</option>
+                      <option value="inside">داخل السيارة</option>
+                      <option value="outside">خارج السيارة</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setShowAdvancedControls(value => !value)} className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-[11px] font-bold text-zinc-200 transition">
+                      {showAdvancedControls ? 'إخفاء الإعدادات المتقدمة' : 'إظهار الإعدادات المتقدمة'}
+                    </button>
+                    <button type="button" onClick={() => setUseGeminiAutoEngine(value => !value)} className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-[11px] font-bold text-zinc-200 transition">
+                      {useGeminiAutoEngine ? 'استخدام المحرك المحلي' : 'تفعيل Gemini تلقائياً'}
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-zinc-400">
+                    {useGeminiAutoEngine ? 'Gemini يختار الموقع والخلفية والوضعية والزاوية والتفاصيل.' : 'المحرك المحلي المتقدم هو النشط الآن.'}
+                  </span>
+                </div>
+              </section>
+
+              {showAdvancedControls && (
+                <>
               {/* 🎯 Unified Studio Controls V11 (All 6 Sections on One Screen) */}
               <UnifiedStudioControls
                 itemBg={itemBg}
@@ -955,6 +1113,8 @@ export default function App() {
                 setMicroWeatherIds={setMicroWeatherIds}
                 toggle={toggle}
               />
+                </>
+              )}
 
               {/* Automatic Physical Realism Engine Status Banner */}
               <div className="rounded-2xl border p-3.5 bg-zinc-950/90 border-zinc-800 space-y-2.5 shadow-md">
@@ -1007,7 +1167,29 @@ export default function App() {
 
               {/* صندوق عرض ونسخ البرومبت الذكي */}
               <div className={`${card} border rounded-2xl p-4 md:p-5 space-y-3`}>
-                <div className="flex items-center justify-between">
+
+                <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/30 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 text-indigo-200 text-xs font-extrabold">
+                      <span>✨</span>
+                      <span>المحرك التلقائي عبر Gemini</span>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${geminiAutoPromptStatus === 'ready' ? 'bg-emerald-500/20 text-emerald-300' : geminiAutoPromptStatus === 'loading' ? 'bg-amber-500/20 text-amber-300' : 'bg-zinc-800 text-zinc-300'}`}>
+                      {promptSource === 'gemini' ? 'Gemini جاهز' : geminiAutoPromptStatus === 'loading' ? 'جارٍ التوليد' : geminiAutoPromptStatus === 'fallback' ? 'خطة محلية آمنة' : 'محرك محلي'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-indigo-100/80 leading-relaxed">
+                    أنت تختار السيارة والإضاءة والملابس ومكان التصوير. يختار Gemini الموقع السعودي والخلفية والوضعية والزاوية وكل التفاصيل وفق قواعد الواقعية الصارمة.
+                  </p>
+                  {geminiAutoPrompt && automaticPromptIsActive && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10px] text-zinc-300">
+                      <span><b className="text-indigo-200">الموقع:</b> {geminiAutoPrompt.locationAr}</span>
+                      <span><b className="text-indigo-200">الخلفية:</b> {geminiAutoPrompt.backgroundAr}</span>
+                      <span><b className="text-indigo-200">الوضعية:</b> {geminiAutoPrompt.poseAr}</span>
+                      <span><b className="text-indigo-200">الكاميرا:</b> {geminiAutoPrompt.cameraAr}</span>
+                    </div>
+                  )}
+                </div>                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-base">🧠</span>
                     <div>

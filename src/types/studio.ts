@@ -1,6 +1,7 @@
 export type Tab = 'gen' | 'flash' | 'presets' | 'sessions' | 'guide' | 'about';
 export type StepCategory = 'subject' | 'framing' | 'attire' | 'background' | 'physics';
 export type Zone = 'inside' | 'outside';
+export type SceneScope = 'auto' | 'inside' | 'outside';
 export type Lang = 'ar' | 'en' | 'both';
 
 export interface Opt {
@@ -98,6 +99,7 @@ export interface PresetMood {
     tallErgonomicIds: string[];
     inAppArtifactIds: string[];
     microWeatherIds: string[];
+    sceneScope: SceneScope;
   }>;
 }
 
@@ -106,6 +108,7 @@ export interface BuildInput {
   cameraPlan?: AutoCameraPlan;
   directorPlan?: AutoSceneDirectorPlan;
   timeOfDay?: 'auto' | 'day' | 'sunset' | 'night';
+  sceneScope?: SceneScope;
   loc: Loc;
   carModel: Opt;
   carColor: Opt;
