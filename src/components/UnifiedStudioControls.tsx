@@ -878,20 +878,20 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
         {/* Framing & Aspect Ratio */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            {${cameraMode === 'auto'} ? (
+            {cameraMode === 'auto'} ? (
               <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 space-y-2">
                 <div className="flex items-center gap-2 text-sky-200 text-xs font-extrabold">
                   <span>✨</span>
                   <span>المخرج الذكي يحدد التكوين تلقائياً</span>
                 </div>
-                <div className="text-sm font-bold text-white">{${cameraPlan.shotLabelAr}}</div>
-                <div className="text-[11px] text-sky-100/80 leading-relaxed">{${cameraPlan.reasonAr}}</div>
+                <div className="text-sm font-bold text-white">{cameraPlan.shotLabelAr}</div>
+                <div className="text-[11px] text-sky-100/80 leading-relaxed">{cameraPlan.reasonAr}</div>
                 <div className="flex flex-wrap gap-1.5 text-[10px]">
                   <span className="rounded-full bg-black/20 border border-sky-400/20 px-2 py-1 text-sky-100">
-                    {${cameraPlan.focalLengthEquivalent}}
+                    {cameraPlan.focalLengthEquivalent}
                   </span>
                   <span className="rounded-full bg-black/20 border border-sky-400/20 px-2 py-1 text-sky-100">
-                    مسافة الهاتف: {${cameraPlan.distanceCm}} سم
+                    مسافة الهاتف: {cameraPlan.distanceCm} سم
                   </span>
                 </div>
               </div>
@@ -957,10 +957,10 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
         {/* Pose and Angle */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-zinc-800/80">
           <div className="space-y-1.5">
-            {${cameraMode === 'auto'} ? (
+            {cameraMode === 'auto'} ? (
               <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 min-h-[88px]">
                 <div className="text-xs font-bold text-sky-200 mb-1">📐 زاوية التصوير التلقائية</div>
-                <div className="text-xs text-white font-semibold">{${cameraPlan.angle.ar}}</div>
+                <div className="text-xs text-white font-semibold">{cameraPlan.angle.ar}</div>
                 <div className="text-[10px] text-sky-100/70 mt-1">يُراجعها محرك الواقعية مع هندسة المكان وارتفاع السقف.</div>
               </div>
             ) : (
