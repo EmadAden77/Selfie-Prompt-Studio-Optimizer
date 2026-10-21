@@ -258,7 +258,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
     time: timeOfDay,
     lightingId: lightId,
     poseId,
-    frameId,
+    frameId: cameraMode === 'auto' ? cameraPlan.frame.id : frameId,
     selectedCabinIds: cabinIds,
     clothId,
     selectedAirflowIds: airflowIds,
@@ -914,7 +914,9 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
                 </div>
               </>
             )}
-          </div>          <div className="space-y-1.5">
+          </div>
+
+          <div className="space-y-1.5">
             <label className="text-xs font-bold text-zinc-300 block">
               📱 أبعاد الكادر (Aspect Ratio) ونوع الهاتف:
             </label>
@@ -982,7 +984,9 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
                 </div>
               </>
             )}
-          </div>          <div className="space-y-1.5">
+          </div>
+
+          <div className="space-y-1.5">
             <label className="text-xs font-bold text-zinc-300 block">
               🤳 وضعية اليدين والجسد (متناسقة مع {isOutside ? 'خارج السيارة' : 'داخل المقصورة'}):
             </label>
