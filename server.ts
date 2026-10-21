@@ -181,7 +181,6 @@ app.post('/api/gemini/quick-generate', async (req, res) => {
     const car = asRecord(body.car);
     const light = asRecord(body.light);
     const cloth = asRecord(body.cloth);
-    const carColor = asRecord(body.carColor);
     const customApiKey = readText(body.customApiKey, MAX_API_KEY_LENGTH);
 
     const zoneText = loc.zone === 'outside'
