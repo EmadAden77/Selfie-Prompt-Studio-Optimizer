@@ -319,7 +319,7 @@ export default function App() {
     opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds,
     dashUiIds, subsurfaceIds, fabricIds, thermalIds, clutterIds,
     airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds,
-    inAppArtifactIds, microWeatherIds, timeOfDay, autoLighting, cameraMode,
+    inAppArtifactIds, microWeatherIds, timeOfDay, autoLighting,
   });
   const lastSceneFingerprint = useRef(sceneFingerprint);
   useEffect(() => {
