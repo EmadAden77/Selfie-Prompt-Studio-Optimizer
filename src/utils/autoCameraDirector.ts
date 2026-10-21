@@ -93,6 +93,17 @@ export function resolveAutoCameraPlan(scene: AutoCameraContext): AutoCameraPlan 
   if (preferredFrameId === 'close_face' || preferredFrameId === 'half_body' || preferredFrameId === 'wide_outside') {
     if (inside ? preferredFrameId !== 'wide_outside' : true) frameId = preferredFrameId;
   }
+  if (frameId === 'close_face') {
+    shotLabelAr = 'لقطة قريبة للوجه والصدر';
+    shotLabelEn = 'close-up face-and-chest selfie';
+  } else if (frameId === 'wide_outside') {
+    shotLabelAr = 'لقطة واسعة سياقية';
+    shotLabelEn = 'wide contextual selfie';
+  } else {
+    shotLabelAr = 'لقطة نصفية طبيعية';
+    shotLabelEn = 'natural half-body selfie';
+  }
+
   const preferredAngleId = scene.directorPlan?.preferredAngleId;
   if (preferredAngleId === 'eye_level' || preferredAngleId === 'high_45' || preferredAngleId === 'chest_low' || preferredAngleId === 'candid_side') {
     angleId = preferredAngleId;
