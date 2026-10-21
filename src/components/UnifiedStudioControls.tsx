@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Opt, Cloth, Loc } from '../types/studio';
+import type { AutoCameraPlan, CameraMode } from '../types/studio';
 import {
   LOCATIONS,
   LIGHTING_OPTIONS,
@@ -74,6 +75,9 @@ interface UnifiedStudioControlsProps {
   setTallErgonomicIds: React.Dispatch<React.SetStateAction<string[]>>;
 
   // 4. Framing & Camera
+  cameraMode: CameraMode;
+  setCameraMode: (mode: CameraMode) => void;
+  cameraPlan: AutoCameraPlan;
   frameId: string;
   setFrameId: (id: string) => void;
   phoneId: string;
@@ -162,6 +166,9 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
   tallErgonomicIds,
   setTallErgonomicIds,
 
+  cameraMode,
+  setCameraMode,
+  cameraPlan,
   frameId,
   setFrameId,
   phoneId,
@@ -859,33 +866,55 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
               </span>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setCameraMode(cameraMode === 'auto' ? 'manual' : 'auto')}
+            className="text-[11px] px-2.5 py-1.5 rounded-lg bg-sky-900/60 hover:bg-sky-800 text-sky-200 border border-sky-700/60 transition font-semibold"
+          >
+            {cameraMode === 'auto' ? '⚙️ تحكم يدوي متقدم' : '✨ تفعيل المخرج التلقائي'}
+          </button>
         </div>
 
         {/* Framing & Aspect Ratio */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-zinc-300 block">
-              🎯 أولوية التأطير (الشخص المرجعي أولاً 75%–85%):
-            </label>
-            <div className="grid grid-cols-1 gap-1.5">
-              {FRAMINGS.map(f => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFrameId(f.id)}
-                  className={`p-2 rounded-xl text-right text-xs border transition ${
-                    frameId === f.id
-                      ? 'bg-sky-600 text-white font-bold border-sky-500 shadow'
-                      : `${itemBg} border-zinc-800 text-zinc-300 hover:border-zinc-700`
-                  }`}
-                >
-                  {f.ar}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
+            {${cameraMode === 'auto'} ? (
+              <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sky-200 text-xs font-extrabold">
+                  <span>✨</span>
+                  <span>المخرج الذكي يحدد التكوين تلقائياً</span>
+                </div>
+                <div className="text-sm font-bold text-white">{${cameraPlan.shotLabelAr}}</div>
+                <div className="text-[11px] text-sky-100/80 leading-relaxed">{${cameraPlan.reasonAr}}</div>
+                <div className="flex flex-wrap gap-1.5 text-[10px]">
+                  <span className="rounded-full bg-black/20 border border-sky-400/20 px-2 py-1 text-sky-100">
+                    {${cameraPlan.focalLengthEquivalent}}
+                  </span>
+                  <span className="rounded-full bg-black/20 border border-sky-400/20 px-2 py-1 text-sky-100">
+                    مسافة الهاتف: {${cameraPlan.distanceCm}} سم
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <label className="text-xs font-bold text-zinc-300 block">
+                  🎯 أولوية التأطير اليدوي:
+                </label>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {FRAMINGS.map(f => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setFrameId(f.id)}
+                      className={frameId === f.id ? 'p-2 rounded-xl text-right text-xs border transition bg-sky-600 text-white font-bold border-sky-500 shadow' : itemBg + ' border-zinc-800 text-zinc-300 hover:border-zinc-700'}
+                    >
+                      {f.ar}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>          <div className="space-y-1.5">
             <label className="text-xs font-bold text-zinc-300 block">
               📱 أبعاد الكادر (Aspect Ratio) ونوع الهاتف:
             </label>
@@ -928,28 +957,32 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
         {/* Pose and Angle */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-zinc-800/80">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-zinc-300 block">
-              📸 زاوية التقاط السيلفي الطبيعية:
-            </label>
-            <div className="grid grid-cols-1 gap-1.5">
-              {ANGLES.map(ang => (
-                <button
-                  key={ang.id}
-                  type="button"
-                  onClick={() => setAngleId(ang.id)}
-                  className={`p-2 rounded-xl text-right text-xs border transition ${
-                    angleId === ang.id
-                      ? 'bg-sky-600 text-white font-bold border-sky-500'
-                      : `${itemBg} border-zinc-800 text-zinc-300 hover:border-zinc-700`
-                  }`}
-                >
-                  {ang.ar}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
+            {${cameraMode === 'auto'} ? (
+              <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 min-h-[88px]">
+                <div className="text-xs font-bold text-sky-200 mb-1">📐 زاوية التصوير التلقائية</div>
+                <div className="text-xs text-white font-semibold">{${cameraPlan.angle.ar}}</div>
+                <div className="text-[10px] text-sky-100/70 mt-1">يُراجعها محرك الواقعية مع هندسة المكان وارتفاع السقف.</div>
+              </div>
+            ) : (
+              <>
+                <label className="text-xs font-bold text-zinc-300 block">
+                  📸 زاوية التقاط السيلفي اليدوية:
+                </label>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {ANGLES.map(ang => (
+                    <button
+                      key={ang.id}
+                      type="button"
+                      onClick={() => setAngleId(ang.id)}
+                      className={angleId === ang.id ? 'p-2 rounded-xl text-right text-xs border transition bg-sky-600 text-white font-bold border-sky-500' : itemBg + ' border-zinc-800 text-zinc-300 hover:border-zinc-700'}
+                    >
+                      {ang.ar}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>          <div className="space-y-1.5">
             <label className="text-xs font-bold text-zinc-300 block">
               🤳 وضعية اليدين والجسد (متناسقة مع {isOutside ? 'خارج السيارة' : 'داخل المقصورة'}):
             </label>
