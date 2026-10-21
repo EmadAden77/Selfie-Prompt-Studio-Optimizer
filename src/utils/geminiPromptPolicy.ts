@@ -109,8 +109,9 @@ export function normalizeGeminiPromptResult(raw: unknown): GeminiPromptResult | 
 
   if (required.some(value => !value)) return null;
   if (result.promptEn.length < 260 || result.promptAr.length < 180) return null;
-  if (SPECIFIC_LANDMARKS.test(result.promptEn) || SPECIFIC_LANDMARKS.test(result.promptAr)) return null;
-  if (/ignore previous|reveal hidden|system prompt|تعليمات النظام|تجاهل التعليمات/i.test(result.promptEn + '\n' + result.promptAr)) return null;
+  const allText = Object.values(result).join('\n');
+  if (SPECIFIC_LANDMARKS.test(allText)) return null;
+  if (/ignore previous|reveal hidden|system prompt|تعليمات النظام|تجاهل التعليمات/i.test(allText)) return null;
 
   return result;
 }
