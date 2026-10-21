@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Opt, Cloth, Loc } from '../types/studio';
-import type { AutoCameraPlan, CameraMode } from '../types/studio';
+import type { AutoCameraPlan, AutoSceneDirectorPlan, CameraMode } from '../types/studio';
 import {
   LOCATIONS,
   LIGHTING_OPTIONS,
@@ -78,6 +78,8 @@ interface UnifiedStudioControlsProps {
   cameraMode: CameraMode;
   setCameraMode: (mode: CameraMode) => void;
   cameraPlan: AutoCameraPlan;
+  directorPlan: AutoSceneDirectorPlan;
+  directorStatus: 'local' | 'loading' | 'gemini' | 'fallback';
   frameId: string;
   setFrameId: (id: string) => void;
   phoneId: string;
@@ -169,6 +171,8 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
   cameraMode,
   setCameraMode,
   cameraPlan,
+  directorPlan,
+  directorStatus,
   frameId,
   setFrameId,
   phoneId,
@@ -253,6 +257,17 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
   }, [locZoneFilter, locSearch]);
 
   const isOutside = selectedLocation.zone === 'outside';
+  const availablePoses = useMemo(
+    () => POSES.filter(p => isOutside ? p.id.startsWith('outside_') : !p.id.startsWith('outside_')),
+    [isOutside]
+  );
+  const directorStatusLabel = directorStatus === 'gemini'
+    ? 'Gemini'
+    : directorStatus === 'loading'
+      ? 'جارٍ التحليل'
+      : directorStatus === 'fallback'
+        ? 'خطة محلية آمنة'
+        : 'تلقائي';
   const lockReason = (group: OptionGroup, id: string) => optionLockReason(group, id, {
     zone: selectedLocation.zone,
     time: timeOfDay,
@@ -274,6 +289,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
     if (cameraMode === 'auto') {
       setFrameId(cameraPlan.frame.id);
       setAngleId(cameraPlan.angle.id);
+      setPoseId(directorPlan.pose.id);
       setCameraMode('manual');
       return;
     }
@@ -890,9 +906,12 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
           <div className="space-y-1.5">
             {cameraMode === 'auto' ? (
               <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 space-y-2">
-                <div className="flex items-center gap-2 text-sky-200 text-xs font-extrabold">
-                  <span>✨</span>
-                  <span>المخرج الذكي يحدد التكوين تلقائياً</span>
+                <div className="flex items-center justify-between gap-2 text-sky-200 text-xs font-extrabold">
+                  <div className="flex items-center gap-2">
+                    <span>✨</span>
+                    <span>المخرج الذكي يحدد التكوين تلقائياً</span>
+                  </div>
+                  <span className="rounded-full bg-black/20 border border-sky-400/20 px-2 py-0.5 text-[10px]">{directorStatusLabel}</span>
                 </div>
                 <div className="text-sm font-bold text-white">{cameraPlan.shotLabelAr}</div>
                 <div className="text-[11px] text-sky-100/80 leading-relaxed">{cameraPlan.reasonAr}</div>
@@ -997,11 +1016,20 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-zinc-300 block">
+            {cameraMode === 'auto' && (
+              <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-3 mb-2 space-y-1.5">
+                <div className="text-xs font-extrabold text-violet-200">🎬 المخرج التلقائي يختار الوضعية والحركة</div>
+                <div className="text-xs text-white font-semibold">{directorPlan.pose.ar}</div>
+                <div className="text-[11px] text-violet-100/80">{directorPlan.motion.ar}</div>
+                <div className="text-[11px] text-violet-100/80">{directorPlan.gaze.ar}</div>
+                <div className="text-[10px] text-violet-100/70 pt-1 border-t border-violet-300/20">{directorPlan.spontaneity.ar}</div>
+              </div>
+            )}
+            <label className={cameraMode === 'auto' ? 'hidden' : 'text-xs font-bold text-zinc-300 block'}>
               🤳 وضعية اليدين والجسد (متناسقة مع {isOutside ? 'خارج السيارة' : 'داخل المقصورة'}):
             </label>
             <div className="grid grid-cols-1 gap-1.5">
-              {POSES.map(p => (
+              {availablePoses.map(p => (
                 <button
                   key={p.id}
                   {...lockProps("poses", p.id)}
