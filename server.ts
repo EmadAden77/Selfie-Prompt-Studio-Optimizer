@@ -78,7 +78,18 @@ function createGeminiClient(key: string): GoogleGenAI {
 
 const apiKey = readText(process.env.GEMINI_API_KEY, MAX_API_KEY_LENGTH);
 const ai = apiKey ? createGeminiClient(apiKey) : null;
-const configuredCorsOrigin = readText(process.env.CORS_ORIGIN || process.env.APP_URL, 500).replace(/\/$/, '');
+function parseCorsOrigins(value: string): Set<string> {
+  return new Set(
+    value
+      .split(',')
+      .map((origin) => origin.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+  );
+}
+
+const configuredCorsOrigins = parseCorsOrigins(
+  readText(process.env.CORS_ORIGIN || process.env.APP_URL, 2_000),
+);
 
 app.disable('x-powered-by');
 const configuredProxyHops = Number(process.env.TRUST_PROXY_HOPS);
@@ -93,12 +104,12 @@ app.use('/api', (req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
   const origin = req.headers.origin;
-  if (origin && configuredCorsOrigin && origin !== configuredCorsOrigin) {
+  if (origin && configuredCorsOrigins.size > 0 && !configuredCorsOrigins.has(origin)) {
     return res.status(403).json({ success: false, error: 'Origin is not allowed.' });
   }
 
-  if (origin && configuredCorsOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', configuredCorsOrigin);
+  if (origin && configuredCorsOrigins.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -413,6 +424,9 @@ app.get('/api/health', (_req, res) => {
 
 // Dev vs Prod Vite Integration
 const isProduction = process.env.NODE_ENV === 'production';
+const staticDirectory = process.env.VERCEL === '1'
+  ? path.resolve(__dirname, 'public')
+  : path.resolve(__dirname, 'dist');
 
 async function startServer() {
   if (!isProduction) {
@@ -423,9 +437,9 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
+    app.use(express.static(staticDirectory));
     app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+      res.sendFile(path.resolve(staticDirectory, 'index.html'));
     });
   }
 
@@ -434,4 +448,10 @@ async function startServer() {
   });
 }
 
-startServer();
+// Vercel wraps the default export as a serverless Express function.
+// Local development and self-hosted production still use the port listener.
+if (process.env.VERCEL !== '1') {
+  startServer();
+}
+
+export default app;
