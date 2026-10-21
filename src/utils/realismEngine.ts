@@ -875,6 +875,20 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   report.spatialProfile.armPerspective = isInside
     ? 'One-handed front selfie with natural elbow bend and roof clearance'
     : 'One-handed front selfie with relaxed arm and physically plausible perspective';
+  const finalCameraPlan = input.cameraMode === 'manual'
+    ? undefined
+    : resolveAutoCameraPlan({
+      loc: input.loc,
+      carModel: input.carModel,
+      cloth: input.cloth,
+      pose: contextual.pose,
+      aspect: input.aspect,
+      phone: input.phone,
+      light: sanitizedLight,
+      storyline: input.storyline,
+      tint: sanitizedTint,
+    });
+
   const sanitized: BuildInput = {
     ...input,
     cabins: sanitizedCabins,
@@ -884,7 +898,9 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     airflows: sanitizedAirflows,
     tallErgonomics: sanitizedTallErgonomics,
     pose: contextual.pose,
-    angle: contextual.angle,
+    frame: finalCameraPlan?.frame ?? input.frame,
+    angle: finalCameraPlan?.angle ?? contextual.angle,
+    cameraPlan: finalCameraPlan,
     hair: contextual.hair,
     accessory: contextual.accessory,
     subsurfaces: sanitizedSubsurfaces,
