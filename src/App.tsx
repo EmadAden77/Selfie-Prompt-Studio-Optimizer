@@ -957,7 +957,7 @@ export default function App() {
                 )}
               </div>
 
-              <section className=\`${card} border rounded-2xl p-4 md:p-5 space-y-3\` aria-labelledby="gemini-auto-heading">
+              <section className=`${card} border rounded-2xl p-4 md:p-5 space-y-3` aria-labelledby="gemini-auto-heading">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div>
                     <h2 id="gemini-auto-heading" className="font-extrabold text-sm">Gemini يكتب البرومبت تلقائياً</h2>
@@ -969,25 +969,25 @@ export default function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <label className="space-y-1.5">
                     <span className="text-[11px] font-bold text-zinc-300">السيارة</span>
-                    <select value={carModelId} onChange={e => setCarModelId(e.target.value)} className=\`w-full \${itemBg} border \${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50\`>
+                    <select value={carModelId} onChange={e => setCarModelId(e.target.value)} className=`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50`>
                       {CAR_MODELS.map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
                     </select>
                   </label>
                   <label className="space-y-1.5">
                     <span className="text-[11px] font-bold text-zinc-300">لون السيارة</span>
-                    <select value={carColorId} onChange={e => setCarColorId(e.target.value)} className=\`w-full \${itemBg} border \${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50\`>
+                    <select value={carColorId} onChange={e => setCarColorId(e.target.value)} className=`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50`>
                       {CAR_COLORS.map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
                     </select>
                   </label>
                   <label className="space-y-1.5">
                     <span className="text-[11px] font-bold text-zinc-300">الإضاءة</span>
-                    <select value={lightId} onChange={e => { setLightId(e.target.value); setAutoLighting(false); }} className=\`w-full \${itemBg} border \${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50\`>
+                    <select value={lightId} onChange={e => { setLightId(e.target.value); setAutoLighting(false); }} className=`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50`>
                       {(LIGHTING as Opt[]).map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
                     </select>
                   </label>
                   <label className="space-y-1.5 sm:col-span-3">
                     <span className="text-[11px] font-bold text-zinc-300">الملابس</span>
-                    <select value={clothId} onChange={e => setClothId(e.target.value)} className=\`w-full \${itemBg} border \${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50\`>
+                    <select value={clothId} onChange={e => setClothId(e.target.value)} className=`w-full ${itemBg} border ${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50`>
                       {CLOTHES.map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
                     </select>
                   </label>
