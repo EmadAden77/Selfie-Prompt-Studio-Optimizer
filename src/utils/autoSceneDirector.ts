@@ -348,7 +348,7 @@ export function normalizeGeminiDirectorPlan(
 
   if (!poseId && !preferredAngleId && !preferredFrameId && !motionAr && !motionEn) return null;
 
-  const pose = (poseId && POSES.find((candidate) => candidate.id === poseId)) ?? fallback.pose;
+  const pose = (poseId ? POSES.find((candidate) => candidate.id === poseId) : undefined) ?? fallback.pose;
   return {
     source: 'gemini',
     pose,
