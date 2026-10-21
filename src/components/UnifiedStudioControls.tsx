@@ -1028,7 +1028,7 @@ export const UnifiedStudioControls: React.FC<UnifiedStudioControlsProps> = ({
             <label className={cameraMode === 'auto' ? 'hidden' : 'text-xs font-bold text-zinc-300 block'}>
               🤳 وضعية اليدين والجسد (متناسقة مع {isOutside ? 'خارج السيارة' : 'داخل المقصورة'}):
             </label>
-            <div className="grid grid-cols-1 gap-1.5">
+            <div className={cameraMode === 'auto' ? 'hidden' : 'grid grid-cols-1 gap-1.5'}>
               {availablePoses.map(p => (
                 <button
                   key={p.id}
