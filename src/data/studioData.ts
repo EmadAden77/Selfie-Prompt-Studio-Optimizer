@@ -385,6 +385,12 @@ export const POSES: Opt[] = [
   { id: "arm_out", ar: "سيلفي يد واحدة ممدودة للأمام بعفوية (ذراع طويل)", en: "one long arm extended forward holding phone naturally, wide candid view" },
   { id: "adjust_collar", ar: "يد تعدل ياقة الثوب بعفوية والأخرى تصور", en: "one hand casually adjusting collar fold, other snapping candid selfie" },
   { id: "involuntary_snap", ar: "لقطة خاطفة عفوية أثناء الالتفات لنافذة السيارة", en: "involuntary mid-motion candid snap turning toward car window, authentic unposed feel" },
+  { id: "outside_standing_relaxed", ar: "وقوف شبابي هادئ بجانب السيارة مع توزيع طبيعي للوزن", en: "relaxed youthful stance beside the safely parked car, weight naturally shifted to one leg, one arm holding the phone" },
+  { id: "outside_lean_vehicle", ar: "اتكاء خفيف على السيارة دون وضعية استعراضية", en: "casual light lean against the safely parked vehicle, relaxed shoulders, no fashion pose" },
+  { id: "outside_walk_candid", ar: "مشي بطيء عفوي أثناء التقاط السيلفي", en: "slow candid walk beside the safely parked car while holding the selfie phone naturally" },
+  { id: "outside_open_door_turn", ar: "واقف عند باب السيارة المفتوح مع التفاتة عفوية للكاميرا", en: "standing by the open driver door with a natural turn toward the camera" },
+  { id: "outside_sit_safe_edge", ar: "جلوس طبيعي على حافة آمنة ومنخفضة إذا سمح المكان", en: "natural seated pose on a safe low edge only when the location physically provides one" },
+  { id: "outside_adjust_sleeve", ar: "تعديل الكم أو الساعة بيد واحدة أثناء السيلفي", en: "casually adjusting a sleeve or watch with the free hand during the selfie" },
 ];
 
 export const ANTI_AI_BLOCKLIST = [
@@ -533,6 +539,12 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
         ? `اختيار الكاميرا التلقائي: ${i.cameraPlan.shotLabelAr}، ${i.cameraPlan.focalLengthEquivalent}، مسافة هاتف واقعية تقارب ${i.cameraPlan.distanceCm} سم. ${i.cameraPlan.reasonAr}`
         : `Automatic scene-aware camera plan: ${i.cameraPlan.shotLabelEn}; ${i.cameraPlan.focalLengthEquivalent}; realistic phone distance about ${i.cameraPlan.distanceCm}cm. ${i.cameraPlan.reasonEn}`)
       : undefined;
+    const directorPlan = i.directorPlan;
+    const directorDecision = directorPlan
+      ? (ar
+        ? `المخرج التلقائي (${directorPlan.source === 'gemini' ? 'Gemini' : 'محلي'}): الوضعية ${pick(directorPlan.pose)}؛ الحركة ${pick(directorPlan.motion)}؛ النظرة ${pick(directorPlan.gaze)}؛ العفوية ${pick(directorPlan.spontaneity)}. ${directorPlan.reasonAr}`
+        : `Automatic scene director (${directorPlan.source === 'gemini' ? 'Gemini' : 'local'}): pose ${pick(directorPlan.pose)}; motion ${pick(directorPlan.motion)}; gaze ${pick(directorPlan.gaze)}; spontaneity ${pick(directorPlan.spontaneity)}. ${directorPlan.reasonEn}`)
+      : undefined;
     const conciseAvoidList = ANTI_AI_BLOCKLIST.filter(term => [
       'cinematic lighting', 'studio lighting', 'professional photoshoot',
       'airbrushed skin', 'plastic skin', 'changing facial features',
@@ -563,7 +575,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
       optional(ar ? 'ملصقات ومعالجة التطبيق: ' : 'App overlays and processing: ', i.appUis)
     ]);
     append(ar ? 'الوضعية والملابس' : 'POSTURE AND CLOTHING', [
-      pick(i.pose), pick(i.cloth), accessory,
+      directorDecision ?? pick(i.pose), pick(i.cloth), accessory,
       optional(ar ? 'سلوك القماش: ' : 'Fabric response: ', close ? i.fabrics.filter(x => x.id !== 'seat_hip_creases') : i.fabrics),
       optional(ar ? 'الحركة: ' : 'Motion: ', i.gripMotions.filter(x => x.id !== 'natural_arm_stretch')),
       optional(ar ? 'إشارة القامة وملاءمة المقصورة: ' : 'Height and cabin-fit cue: ', [i.heightCue]),

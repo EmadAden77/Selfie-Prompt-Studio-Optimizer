@@ -1,10 +1,12 @@
 import { ANGLES, FRAMINGS } from '../data/studioData';
-import type { AutoCameraPlan, BuildInput, Opt } from '../types/studio';
+import type { AutoCameraPlan, AutoSceneDirectorPlan, BuildInput, Opt } from '../types/studio';
 
 export type AutoCameraContext = Pick<
   BuildInput,
   'loc' | 'carModel' | 'cloth' | 'pose' | 'aspect' | 'phone' | 'light' | 'storyline' | 'tint'
->;
+> & {
+  directorPlan?: AutoSceneDirectorPlan;
+};
 
 const fallback = (id: string, ar: string, en: string): Opt => ({ id, ar, en });
 
@@ -21,7 +23,8 @@ function findOption(options: Opt[], id: string, fallbackValue: Opt): Opt {
  */
 export function resolveAutoCameraPlan(scene: AutoCameraContext): AutoCameraPlan {
   const inside = scene.loc.zone === 'inside';
-  const candidMovement = ['arm_out', 'involuntary_snap'].includes(scene.pose.id);
+  const effectivePose = scene.directorPlan?.pose ?? scene.pose;
+  const candidMovement = ['arm_out', 'involuntary_snap', 'outside_walk_candid', 'outside_adjust_sleeve'].includes(effectivePose.id);
   const wideAspect = scene.aspect.id === '169';
 
   let frameId: 'close_face' | 'half_body' | 'wide_outside';
@@ -32,7 +35,7 @@ export function resolveAutoCameraPlan(scene: AutoCameraContext): AutoCameraPlan 
   let reasonEn: string;
   let distanceCm: number;
 
-  if (inside && scene.pose.id === 'hand_on_wheel') {
+  if (inside && effectivePose.id === 'hand_on_wheel') {
     frameId = 'close_face';
     angleId = 'eye_level';
     shotLabelAr = 'لقطة قريبة للوجه والصدر';
@@ -40,7 +43,7 @@ export function resolveAutoCameraPlan(scene: AutoCameraContext): AutoCameraPlan 
     reasonAr = 'المقصورة ضيقة ويد حرة مرتبطة بالمقود؛ لذلك يحافظ النظام على الوجه كأولوية دون توسيع الكادر لإظهار تفاصيل لا يسمح بها المكان.';
     reasonEn = 'The cabin is compact and the free hand is tied to the steering wheel, so the director prioritizes the face without widening the frame beyond the available space.';
     distanceCm = 55;
-  } else if (inside && scene.pose.id === 'adjust_collar') {
+  } else if (inside && effectivePose.id === 'adjust_collar') {
     frameId = 'half_body';
     angleId = 'eye_level';
     shotLabelAr = 'لقطة نصفية من الرأس إلى أعلى الجذع';
@@ -84,6 +87,36 @@ export function resolveAutoCameraPlan(scene: AutoCameraContext): AutoCameraPlan 
     reasonAr = 'هندسة المقصورة وواقعية السيلفي بيد واحدة تجعل اللقطة القريبة بمستوى العين الخيار الأكثر اتساقاً.';
     reasonEn = 'Cabin geometry and one-handed selfie physics make a close eye-level view the most coherent choice.';
     distanceCm = 55;
+  }
+
+  const preferredFrameId = scene.directorPlan?.preferredFrameId;
+  if (preferredFrameId === 'close_face' || preferredFrameId === 'half_body' || preferredFrameId === 'wide_outside') {
+    if (inside ? preferredFrameId !== 'wide_outside' : true) frameId = preferredFrameId;
+  }
+  if (frameId === 'close_face') {
+    shotLabelAr = 'لقطة قريبة للوجه والصدر';
+    shotLabelEn = 'close-up face-and-chest selfie';
+  } else if (frameId === 'wide_outside') {
+    shotLabelAr = 'لقطة واسعة سياقية';
+    shotLabelEn = 'wide contextual selfie';
+  } else if (angleId === 'candid_side') {
+    shotLabelAr = 'لقطة نصفية عفوية جانبية';
+    shotLabelEn = 'candid half-body selfie';
+  } else {
+    shotLabelAr = 'لقطة نصفية طبيعية';
+    shotLabelEn = 'natural half-body selfie';
+  }
+
+  const preferredAngleId = scene.directorPlan?.preferredAngleId;
+  if (preferredAngleId === 'eye_level' || preferredAngleId === 'high_45' || preferredAngleId === 'chest_low' || preferredAngleId === 'candid_side') {
+    angleId = preferredAngleId;
+  }
+  if (scene.directorPlan?.distanceCm && Number.isFinite(scene.directorPlan.distanceCm)) {
+    distanceCm = Math.min(inside ? 68 : 75, Math.max(45, Math.round(scene.directorPlan.distanceCm)));
+  }
+  if (scene.directorPlan?.reasonAr) {
+    reasonAr = `${reasonAr} ${scene.directorPlan.reasonAr}`;
+    reasonEn = `${reasonEn} ${scene.directorPlan.reasonEn}`;
   }
 
   const focalLengthEquivalent = scene.phone.id === 'xiaomi_15_ultra'

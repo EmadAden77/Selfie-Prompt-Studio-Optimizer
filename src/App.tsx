@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt, CameraMode } from './types/studio';
+import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt, CameraMode, AutoSceneDirectorPlan } from './types/studio';
 import {
   HAIR_STYLES,
   BEARD_STYLES,
@@ -46,6 +46,7 @@ import { analyzeLocationLighting, TimeOfDay } from './utils/lightingEngine';
 import { copyToClipboard } from './utils/clipboard';
 import { geminiApiUrl } from './utils/geminiApi';
 import { resolveAutoCameraPlan } from './utils/autoCameraDirector';
+import { normalizeGeminiDirectorPlan, resolveAutoSceneDirector } from './utils/autoSceneDirector';
 
 const STORAGE_KEY = 'selfie-prompt-studio-v11.0';
 
@@ -183,6 +184,10 @@ export default function App() {
   const [geminiResult, setGeminiResult] = useState<string | null>(null);
   const [geminiError, setGeminiError] = useState<string | null>(null);
   const [geminiType, setGeminiType] = useState<'optimize' | 'scenario' | null>(null);
+  const [geminiDirectorPlan, setGeminiDirectorPlan] = useState<AutoSceneDirectorPlan | null>(null);
+  const [geminiDirectorKey, setGeminiDirectorKey] = useState('');
+  const [directorStatus, setDirectorStatus] = useState<'local' | 'loading' | 'gemini' | 'fallback'>('local');
+  const directorRequestRef = useRef(0);
 
   // Snapshot & Automatic Physical Realism Engine States
   const [studioSnapshot, setStudioSnapshot] = useState<StoredState | null>(null);
@@ -254,9 +259,94 @@ export default function App() {
   const phone = PHONES.find(p => p.id === phoneId) ?? PHONES[0];
   const configuredAngle = ANGLES.find(a => a.id === angleId) ?? ANGLES[0];
   const light = (LIGHTING as Opt[]).find((l: Opt) => l.id === lightId) ?? (LIGHTING[0] as Opt);
+
+  const directorContext = useMemo(
+    () => ({ loc, carModel, cloth, accessory, aspect, phone, light, storyline, tint, timeOfDay }),
+    [loc, carModel, cloth, accessory, aspect, phone, light, storyline, tint, timeOfDay]
+  );
+  const directorKey = useMemo(
+    () => JSON.stringify({
+      locId, carModelId, clothId, accessoryId, aspectId, phoneId, lightId, storylineId, tintId, timeOfDay,
+    }),
+    [locId, carModelId, clothId, accessoryId, aspectId, phoneId, lightId, storylineId, tintId, timeOfDay]
+  );
+  const localDirectorPlan = useMemo(
+    () => resolveAutoSceneDirector(directorContext),
+    [directorContext]
+  );
+  const activeDirectorPlan = geminiDirectorKey === directorKey && geminiDirectorPlan
+    ? geminiDirectorPlan
+    : localDirectorPlan;
+
+  // Gemini proposes only the scene direction. The local plan remains active while
+  // the request is pending or unavailable, so prompt generation never blocks.
+  useEffect(() => {
+    if (cameraMode !== 'auto') {
+      setDirectorStatus('local');
+      return;
+    }
+
+    const requestId = ++directorRequestRef.current;
+    let cancelled = false;
+    setDirectorStatus('loading');
+    setGeminiDirectorPlan(null);
+    setGeminiDirectorKey('');
+
+    const timer = window.setTimeout(async () => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
+      try {
+        const describe = (value: Opt) => ({ id: value.id, ar: value.ar, en: value.en });
+        const response = await fetch(geminiApiUrl('/api/gemini/call-flash'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            action: 'director',
+            scene: {
+              location: { id: loc.id, zone: loc.zone, ar: loc.ar, en: loc.en },
+              carModel: describe(carModel),
+              clothing: describe(cloth),
+              accessory: describe(accessory),
+              aspect: describe(aspect),
+              phone: describe(phone),
+              lighting: describe(light),
+              storyline: describe(storyline),
+              tint: describe(tint),
+              timeOfDay,
+              fallbackPlan: localDirectorPlan,
+            },
+          }),
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.success) throw new Error(data?.error || 'director_unavailable');
+        const normalized = normalizeGeminiDirectorPlan(
+          data.director ?? data,
+          directorContext,
+          localDirectorPlan,
+        );
+        if (!normalized) throw new Error('director_invalid_response');
+        if (cancelled || requestId !== directorRequestRef.current) return;
+        setGeminiDirectorPlan(normalized);
+        setGeminiDirectorKey(directorKey);
+        setDirectorStatus('gemini');
+      } catch {
+        if (cancelled || requestId !== directorRequestRef.current) return;
+        setDirectorStatus('fallback');
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [cameraMode, directorKey, directorContext, localDirectorPlan, loc, carModel, cloth, accessory, aspect, phone, light, storyline, tint, timeOfDay]);
+
   const autoCameraPlan = useMemo(
-    () => resolveAutoCameraPlan({ loc, carModel, cloth, pose, aspect, phone, light, storyline, tint }),
-    [loc, carModel, cloth, pose, aspect, phone, light, storyline, tint]
+    () => resolveAutoCameraPlan({ loc, carModel, cloth, pose, aspect, phone, light, storyline, tint, directorPlan: activeDirectorPlan }),
+    [loc, carModel, cloth, pose, aspect, phone, light, storyline, tint, activeDirectorPlan]
   );
   const frame = cameraMode === 'auto' ? autoCameraPlan.frame : configuredFrame;
   const angle = cameraMode === 'auto' ? autoCameraPlan.angle : configuredAngle;
@@ -282,7 +372,9 @@ export default function App() {
   const rawInput = useMemo(
     () => ({
       loc, carModel, carColor, cloth, accessory, pose,
-      cameraMode, cameraPlan: cameraMode === 'auto' ? autoCameraPlan : undefined,
+      cameraMode,
+      cameraPlan: cameraMode === 'auto' ? autoCameraPlan : undefined,
+      directorPlan: cameraMode === 'auto' ? activeDirectorPlan : undefined,
       anatomicalExpr, frame, aspect, phone, angle, light,
       beard, hair, heightCue, storyline, tint,
       opticals, cabins, skinNuances, appUis, gripMotions, dashUis,
@@ -296,7 +388,7 @@ export default function App() {
       opticals, cabins, skinNuances, appUis, gripMotions, dashUis,
       subsurfaces, fabrics, thermals, clutters,
       airflows, screenCasts, cabinArtifacts, tallErgonomics, inAppArtifacts, microWeathers, timeOfDay,
-      cameraMode, autoCameraPlan
+      cameraMode, autoCameraPlan, activeDirectorPlan
     ]
   );
 
@@ -813,6 +905,8 @@ export default function App() {
                 cameraMode={cameraMode}
                 setCameraMode={setCameraMode}
                 cameraPlan={autoCameraPlan}
+                directorPlan={activeDirectorPlan}
+                directorStatus={cameraMode === 'manual' ? 'local' : directorStatus}
                 frameId={frameId}
                 setFrameId={setFrameId}
                 phoneId={phoneId}

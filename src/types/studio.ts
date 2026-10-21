@@ -12,6 +12,19 @@ export interface Opt {
 
 export type CameraMode = 'auto' | 'manual';
 
+export interface AutoSceneDirectorPlan {
+  source: 'local' | 'gemini';
+  pose: Opt;
+  motion: Opt;
+  gaze: Opt;
+  spontaneity: Opt;
+  preferredFrameId?: string;
+  preferredAngleId?: string;
+  distanceCm: number;
+  reasonAr: string;
+  reasonEn: string;
+}
+
 export interface AutoCameraPlan {
   mode: 'auto';
   frame: Opt;
@@ -91,6 +104,7 @@ export interface PresetMood {
 export interface BuildInput {
   cameraMode?: CameraMode;
   cameraPlan?: AutoCameraPlan;
+  directorPlan?: AutoSceneDirectorPlan;
   timeOfDay?: 'auto' | 'day' | 'sunset' | 'night';
   loc: Loc;
   carModel: Opt;
