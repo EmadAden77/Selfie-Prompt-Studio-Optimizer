@@ -7,6 +7,7 @@ const option = (id: string): Opt => ({ id, ar: id, en: id });
 
 function fixture(zone: 'inside' | 'outside', lightId: string): BuildInput {
   return {
+    cameraMode: 'manual',
     loc: { id: zone === 'inside' ? 10 : 21, zone, ar: 'Location', en: 'Location' },
     light: option(lightId),
     carModel: option('car'), carColor: option('white'),
@@ -472,3 +473,60 @@ test('storylines are reconciled with exterior and explicit time context', async 
   assert.ok(daytimeResult.report.warnings.some(x => x.id === 'storyline_context_reconciled'));
 });
 
+
+
+test('automatic camera director chooses one scene-aware, physically valid selfie plan', async () => {
+  const { buildPrompt } = await import('../src/data/studioData');
+  const { resolveAutoCameraPlan } = await import('../src/utils/autoCameraDirector');
+
+  const inside = fixture('inside', 'sodium_street');
+  inside.cameraMode = 'auto';
+  inside.pose = option('hand_on_wheel');
+  const insidePlan = resolveAutoCameraPlan(inside);
+  const insideResult = validateAndSanitizePhysics(inside);
+
+  assert.equal(insidePlan.frame.id, 'close_face');
+  assert.equal(insidePlan.angle.id, 'eye_level');
+  assert.equal(insideResult.sanitized.frame.id, 'close_face');
+  assert.equal(insideResult.sanitized.angle.id, 'eye_level');
+  assert.match(insidePlan.focalLengthEquivalent, /21|24/);
+  assert.doesNotMatch(insidePlan.focalLengthEquivalent, /85|135|200/);
+  assert.match(buildPrompt(insideResult.sanitized).en, /Automatic scene-aware camera plan:/);
+
+  const outside = fixture('outside', 'sodium_street');
+  outside.cameraMode = 'auto';
+  outside.pose = option('arm_out');
+  const outsideResult = validateAndSanitizePhysics(outside);
+  assert.equal(outsideResult.sanitized.frame.id, 'wide_outside');
+  assert.equal(outsideResult.sanitized.angle.id, 'candid_side');
+  assert.match(outsideResult.sanitized.cameraPlan?.reasonEn ?? '', /exterior|environment|automotive/i);
+});
+
+test('manual camera mode remains available for saved sessions and advanced control', () => {
+  const scene = fixture('inside', 'sodium_street');
+  scene.cameraMode = 'manual';
+  scene.frame = option('half_body');
+  scene.angle = option('high_45');
+  const result = validateAndSanitizePhysics(scene);
+
+  assert.equal(result.sanitized.frame.id, 'half_body');
+  assert.equal(result.sanitized.angle.id, 'high_45');
+  assert.equal(result.sanitized.cameraPlan, undefined);
+});
+
+
+test('automatic camera rationale follows an auto-corrected pose', async () => {
+  const { buildPrompt } = await import('../src/data/studioData');
+  const scene = fixture('inside', 'sodium_street');
+  scene.cameraMode = 'auto';
+  scene.pose = option('adjust_collar');
+  scene.cloth = { ...option('tee_black_ref'), cat: 'casual' };
+
+  const result = validateAndSanitizePhysics(scene);
+  const prompt = buildPrompt(result.sanitized).en;
+
+  assert.equal(result.sanitized.pose.id, 'arm_out');
+  assert.equal(result.sanitized.cameraPlan?.angle.id, 'candid_side');
+  assert.doesNotMatch(prompt, /collar gesture needs enough room/i);
+  assert.match(prompt, /candid half-body selfie/i);
+});

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt } from './types/studio';
+import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt, CameraMode } from './types/studio';
 import {
   HAIR_STYLES,
   BEARD_STYLES,
@@ -45,6 +45,7 @@ import { validateAndSanitizePhysics, PhysicalRealismReport } from './utils/reali
 import { analyzeLocationLighting, TimeOfDay } from './utils/lightingEngine';
 import { copyToClipboard } from './utils/clipboard';
 import { geminiApiUrl } from './utils/geminiApi';
+import { resolveAutoCameraPlan } from './utils/autoCameraDirector';
 
 const STORAGE_KEY = 'selfie-prompt-studio-v11.0';
 
@@ -60,6 +61,7 @@ interface StoredState {
   aspectId?: string;
   phoneId?: string;
   angleId?: string;
+  cameraMode?: CameraMode;
   lightId?: string;
   beardId?: string;
   hairId?: string;
@@ -124,6 +126,8 @@ export default function App() {
   const [heightCueId, setHeightCueId] = useState(initial.heightCueId ?? 'headrest_max');
 
   // الكاميرا والتأطير
+  const initialCameraMode: CameraMode = initial.cameraMode ?? (initial.frameId || initial.angleId ? 'manual' : 'auto');
+  const [cameraMode, setCameraMode] = useState<CameraMode>(initialCameraMode);
   const [frameId, setFrameId] = useState(initial.frameId ?? 'close_face');
   const [aspectId, setAspectId] = useState(initial.aspectId ?? '916');
   const [phoneId, setPhoneId] = useState(initial.phoneId ?? 'iphone_16_pro');
@@ -206,7 +210,7 @@ export default function App() {
   useEffect(() => {
     saveStored({
       locId, carModelId, carColorId, clothId, accessoryId, poseId,
-      anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
+      cameraMode, anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
       beardId, hairId, heightCueId, storylineId, tintId,
       opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds, dashUiIds,
       subsurfaceIds, fabricIds, thermalIds, clutterIds,
@@ -217,7 +221,7 @@ export default function App() {
     });
   }, [
     locId, carModelId, carColorId, clothId, accessoryId, poseId,
-    anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
+    cameraMode, anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
     beardId, hairId, heightCueId, storylineId, tintId,
     opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds, dashUiIds,
     subsurfaceIds, fabricIds, thermalIds, clutterIds,
@@ -245,11 +249,17 @@ export default function App() {
   const cloth = CLOTHES.find(c => c.id === clothId) ?? CLOTHES[0];
   const accessory = ACCESSORIES.find(a => a.id === accessoryId) ?? ACCESSORIES[0];
   const pose = POSES.find(p => p.id === poseId) ?? POSES[0];
-  const frame = FRAMINGS.find(f => f.id === frameId) ?? FRAMINGS[0];
+  const configuredFrame = FRAMINGS.find(f => f.id === frameId) ?? FRAMINGS[0];
   const aspect = ASPECTS.find(a => a.id === aspectId) ?? ASPECTS[0];
   const phone = PHONES.find(p => p.id === phoneId) ?? PHONES[0];
-  const angle = ANGLES.find(a => a.id === angleId) ?? ANGLES[0];
+  const configuredAngle = ANGLES.find(a => a.id === angleId) ?? ANGLES[0];
   const light = (LIGHTING as Opt[]).find((l: Opt) => l.id === lightId) ?? (LIGHTING[0] as Opt);
+  const autoCameraPlan = useMemo(
+    () => resolveAutoCameraPlan({ loc, carModel, cloth, pose, aspect, phone, light, storyline, tint }),
+    [loc, carModel, cloth, pose, aspect, phone, light, storyline, tint]
+  );
+  const frame = cameraMode === 'auto' ? autoCameraPlan.frame : configuredFrame;
+  const angle = cameraMode === 'auto' ? autoCameraPlan.angle : configuredAngle;
 
   const opticals = OPTICAL_IMPERFECTIONS.filter(e => opticalIds.includes(e.id));
   const cabins = CABIN_DETAILS.filter(e => cabinIds.includes(e.id));
@@ -272,6 +282,7 @@ export default function App() {
   const rawInput = useMemo(
     () => ({
       loc, carModel, carColor, cloth, accessory, pose,
+      cameraMode, cameraPlan: cameraMode === 'auto' ? autoCameraPlan : undefined,
       anatomicalExpr, frame, aspect, phone, angle, light,
       beard, hair, heightCue, storyline, tint,
       opticals, cabins, skinNuances, appUis, gripMotions, dashUis,
@@ -284,7 +295,8 @@ export default function App() {
       beard, hair, heightCue, storyline, tint,
       opticals, cabins, skinNuances, appUis, gripMotions, dashUis,
       subsurfaces, fabrics, thermals, clutters,
-      airflows, screenCasts, cabinArtifacts, tallErgonomics, inAppArtifacts, microWeathers, timeOfDay
+      airflows, screenCasts, cabinArtifacts, tallErgonomics, inAppArtifacts, microWeathers, timeOfDay,
+      cameraMode, autoCameraPlan
     ]
   );
 
@@ -303,7 +315,7 @@ export default function App() {
   // kept displaying and copying stale text after changing locations or outfits.
   const sceneFingerprint = JSON.stringify({
     locId, carModelId, carColorId, clothId, accessoryId, poseId,
-    anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
+    cameraMode, anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
     beardId, hairId, heightCueId, storylineId, tintId,
     opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds,
     dashUiIds, subsurfaceIds, fabricIds, thermalIds, clutterIds,
@@ -344,7 +356,7 @@ export default function App() {
     if (!studioSnapshot) {
       setStudioSnapshot({
         locId, carModelId, carColorId, clothId, accessoryId, poseId,
-        anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
+        cameraMode, anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
         beardId, hairId, heightCueId, storylineId, tintId,
         opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds, dashUiIds,
         subsurfaceIds, fabricIds, thermalIds, clutterIds,
@@ -365,6 +377,7 @@ export default function App() {
     if (studioSnapshot.accessoryId) setAccessoryId(studioSnapshot.accessoryId);
     if (studioSnapshot.poseId) setPoseId(studioSnapshot.poseId);
     if (studioSnapshot.anatomicalExprId) setAnatomicalExprId(studioSnapshot.anatomicalExprId);
+    if (studioSnapshot.cameraMode) setCameraMode(studioSnapshot.cameraMode);
     if (studioSnapshot.frameId) setFrameId(studioSnapshot.frameId);
     if (studioSnapshot.aspectId) setAspectId(studioSnapshot.aspectId);
     if (studioSnapshot.phoneId) setPhoneId(studioSnapshot.phoneId);
@@ -487,7 +500,7 @@ export default function App() {
       fav: false,
       data: {
         locId, carModelId, carColorId, clothId, accessoryId, poseId,
-        anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
+        cameraMode, anatomicalExprId, frameId, aspectId, phoneId, angleId, lightId,
         beardId, hairId, heightCueId, storylineId, tintId,
         opticalIds, cabinIds, skinNuanceIds, appUiIds, gripMotionIds, dashUiIds,
         subsurfaceIds, fabricIds, thermalIds, clutterIds,
@@ -512,6 +525,12 @@ export default function App() {
     if (d.storylineId) setStorylineId(d.storylineId);
     if (d.tintId) setTintId(d.tintId);
     if (d.anatomicalExprId) setAnatomicalExprId(d.anatomicalExprId);
+    if (d.cameraMode === 'auto' || d.cameraMode === 'manual') {
+      setCameraMode(d.cameraMode);
+    } else if (d.frameId || d.angleId) {
+      // Legacy sessions encoded a deliberate camera choice without cameraMode.
+      setCameraMode('manual');
+    }
     if (d.frameId) setFrameId(d.frameId);
     if (d.aspectId) setAspectId(d.aspectId);
     if (d.phoneId) setPhoneId(d.phoneId);
@@ -791,6 +810,9 @@ export default function App() {
                 setHeightCueId={setHeightCueId}
                 tallErgonomicIds={tallErgonomicIds}
                 setTallErgonomicIds={setTallErgonomicIds}
+                cameraMode={cameraMode}
+                setCameraMode={setCameraMode}
+                cameraPlan={autoCameraPlan}
                 frameId={frameId}
                 setFrameId={setFrameId}
                 phoneId={phoneId}

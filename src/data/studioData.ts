@@ -528,6 +528,11 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
     const timeOfDay = i.timeOfDay && i.timeOfDay !== 'auto'
       ? (ar ? `وقت الالتقاط المختار: ${i.timeOfDay}.` : `Selected capture time: ${i.timeOfDay}.`)
       : undefined;
+    const cameraPlan = i.cameraPlan
+      ? (ar
+        ? `اختيار الكاميرا التلقائي: ${i.cameraPlan.shotLabelAr}، ${i.cameraPlan.focalLengthEquivalent}، مسافة هاتف واقعية تقارب ${i.cameraPlan.distanceCm} سم. ${i.cameraPlan.reasonAr}`
+        : `Automatic scene-aware camera plan: ${i.cameraPlan.shotLabelEn}; ${i.cameraPlan.focalLengthEquivalent}; realistic phone distance about ${i.cameraPlan.distanceCm}cm. ${i.cameraPlan.reasonEn}`)
+      : undefined;
     const conciseAvoidList = ANTI_AI_BLOCKLIST.filter(term => [
       'cinematic lighting', 'studio lighting', 'professional photoshoot',
       'airbrushed skin', 'plastic skin', 'changing facial features',
@@ -552,7 +557,7 @@ export function buildPrompt(i: BuildInput): { ar: string; en: string } {
     append(ar ? 'الكاميرا والتكوين' : 'CAMERA AND COMPOSITION', [
       ar ? 'سيلفي حقيقي بيد واحدة؛ الشخص العنصر الرئيسي، والخلفية لا تظهر إلا إن سمحت زاوية عدسة الهاتف. لا يُفرض امتداد الذراع الأقصى.' :
         'Authentic one-handed front-camera selfie. The person dominates naturally; background appears only within the physical phone field of view. Relaxed elbow, never forced maximum reach.',
-      pick(i.aspect), pick(i.frame), pick(i.phone), pick(i.angle),
+      pick(i.aspect), pick(i.frame), pick(i.phone), pick(i.angle), cameraPlan,
       optional(ar ? 'بصريات: ' : 'Optics: ', i.opticals),
       optional(ar ? 'إحساس الكاميرا: ' : 'Camera rendering: ', i.inAppArtifacts),
       optional(ar ? 'ملصقات ومعالجة التطبيق: ' : 'App overlays and processing: ', i.appUis)
