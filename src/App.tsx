@@ -93,6 +93,7 @@ interface StoredState {
   customPromptEn?: string;
   isCustomEdited?: boolean;
   autoLighting?: boolean;
+  useGeminiAutoEngine?: boolean;
   timeOfDay?: TimeOfDay;
 }
 
@@ -192,6 +193,8 @@ export default function App() {
   const [geminiAutoPrompt, setGeminiAutoPrompt] = useState<GeminiPromptResult | null>(null);
   const [geminiAutoPromptKey, setGeminiAutoPromptKey] = useState('');
   const [geminiAutoPromptStatus, setGeminiAutoPromptStatus] = useState<'idle' | 'loading' | 'ready' | 'fallback'>('idle');
+  const [useGeminiAutoEngine, setUseGeminiAutoEngine] = useState(initial.useGeminiAutoEngine ?? true);
+  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
   const geminiAutoPromptRequestRef = useRef(0);
 
   // Snapshot & Automatic Physical Realism Engine States
@@ -227,7 +230,7 @@ export default function App() {
       airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds, inAppArtifactIds, microWeatherIds,
       lang, darkMode, sessions,
       customPromptAr, customPromptEn, isCustomEdited,
-      autoLighting, timeOfDay
+      autoLighting, timeOfDay, useGeminiAutoEngine
     });
   }, [
     locId, carModelId, carColorId, clothId, accessoryId, poseId,
@@ -238,7 +241,7 @@ export default function App() {
     airflowIds, screenCastIds, cabinArtifactIds, tallErgonomicIds, inAppArtifactIds, microWeatherIds,
     lang, darkMode, sessions,
     customPromptAr, customPromptEn, isCustomEdited,
-    autoLighting, timeOfDay
+    autoLighting, timeOfDay, useGeminiAutoEngine
   ]);
 
   const showToast = (msg: string) => {
@@ -353,11 +356,18 @@ export default function App() {
     () => JSON.stringify({ carModelId, carColorId, clothId, lightId }),
     [carModelId, carColorId, clothId, lightId]
   );
-  const automaticPromptIsActive = geminiAutoPromptKey === automaticPromptKey && Boolean(geminiAutoPrompt);
+  const automaticPromptIsActive = useGeminiAutoEngine && geminiAutoPromptKey === automaticPromptKey && Boolean(geminiAutoPrompt);
 
   // Gemini owns the automatic prompt. Only car, lighting, and clothing are sent as
   // authoritative user choices; every other detail is selected under the strict policy.
   useEffect(() => {
+    if (!useGeminiAutoEngine) {
+      setGeminiAutoPromptStatus('idle');
+      setGeminiAutoPrompt(null);
+      setGeminiAutoPromptKey('');
+      return;
+    }
+
     const requestId = ++geminiAutoPromptRequestRef.current;
     let cancelled = false;
     setGeminiAutoPromptStatus('loading');
@@ -403,7 +413,7 @@ export default function App() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [automaticPromptKey, carModel, carColor, cloth, light]);
+  }, [automaticPromptKey, carModel, carColor, cloth, light, useGeminiAutoEngine]);
 
   const autoCameraPlan = useMemo(
     () => resolveAutoCameraPlan({ loc, carModel, cloth, pose, aspect, phone, light, storyline, tint, directorPlan: activeDirectorPlan }),
@@ -947,6 +957,59 @@ export default function App() {
                 )}
               </div>
 
+              <section className=\`${card} border rounded-2xl p-4 md:p-5 space-y-3\` aria-labelledby="gemini-auto-heading">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div>
+                    <h2 id="gemini-auto-heading" className="font-extrabold text-sm">Gemini يكتب البرومبت تلقائياً</h2>
+                    <p className="text-[11px] text-zinc-400 mt-1">أنت تختار 3 أشياء فقط، والباقي يحدده Gemini ضمن قواعد الواقعية.</p>
+                  </div>
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-indigo-500/15 text-indigo-200 border border-indigo-500/30">3 مدخلات فقط</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <label className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-zinc-300">السيارة</span>
+                    <select value={carModelId} onChange={e => setCarModelId(e.target.value)} className=\`w-full \${itemBg} border \${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50\`>
+                      {CAR_MODELS.map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-zinc-300">لون السيارة</span>
+                    <select value={carColorId} onChange={e => setCarColorId(e.target.value)} className=\`w-full \${itemBg} border \${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50\`>
+                      {CAR_COLORS.map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-zinc-300">الإضاءة</span>
+                    <select value={lightId} onChange={e => { setLightId(e.target.value); setAutoLighting(false); }} className=\`w-full \${itemBg} border \${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50\`>
+                      {(LIGHTING as Opt[]).map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5 sm:col-span-3">
+                    <span className="text-[11px] font-bold text-zinc-300">الملابس</span>
+                    <select value={clothId} onChange={e => setClothId(e.target.value)} className=\`w-full \${itemBg} border \${borderTone} rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/50\`>
+                      {CLOTHES.map(option => <option key={option.id} value={option.id}>{option.ar}</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setShowAdvancedControls(value => !value)} className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-[11px] font-bold text-zinc-200 transition">
+                      {showAdvancedControls ? 'إخفاء الإعدادات المتقدمة' : 'إظهار الإعدادات المتقدمة'}
+                    </button>
+                    <button type="button" onClick={() => setUseGeminiAutoEngine(value => !value)} className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-[11px] font-bold text-zinc-200 transition">
+                      {useGeminiAutoEngine ? 'استخدام المحرك المحلي' : 'تفعيل Gemini تلقائياً'}
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-zinc-400">
+                    {useGeminiAutoEngine ? 'Gemini يختار الموقع والخلفية والوضعية والزاوية والتفاصيل.' : 'المحرك المحلي المتقدم هو النشط الآن.'}
+                  </span>
+                </div>
+              </section>
+
+              {showAdvancedControls && (
+                <>
               {/* 🎯 Unified Studio Controls V11 (All 6 Sections on One Screen) */}
               <UnifiedStudioControls
                 itemBg={itemBg}
@@ -1029,6 +1092,8 @@ export default function App() {
                 setMicroWeatherIds={setMicroWeatherIds}
                 toggle={toggle}
               />
+                </>
+              )}
 
               {/* Automatic Physical Realism Engine Status Banner */}
               <div className="rounded-2xl border p-3.5 bg-zinc-950/90 border-zinc-800 space-y-2.5 shadow-md">
