@@ -3,6 +3,7 @@ import { resolveContextualOptics } from './contextualOptics';
 import { analyzeLocationLighting } from './lightingEngine';
 import { LIGHTING_OPTIONS } from '../data/studioData';
 import { BuildInput, Opt, Loc, SUBJECT_HEIGHT_CM } from '../types/studio';
+import { resolveAutoCameraPlan } from './autoCameraDirector';
 
 type SceneTime = NonNullable<BuildInput['timeOfDay']>;
 type SceneZone = BuildInput['loc']['zone'];
@@ -144,6 +145,28 @@ export function validateAndSanitizePhysics(input: BuildInput): {
   const warnings: PhysicalWarning[] = [];
   const activeRules: string[] = [];
   let deduction = 0;
+
+  if (input.cameraMode !== 'manual') {
+    const automaticCamera = resolveAutoCameraPlan({
+      loc: input.loc,
+      carModel: input.carModel,
+      cloth: input.cloth,
+      pose: input.pose,
+      aspect: input.aspect,
+      phone: input.phone,
+      light: input.light,
+      storyline: input.storyline,
+      tint: input.tint,
+    });
+    input = {
+      ...input,
+      cameraMode: 'auto',
+      cameraPlan: automaticCamera,
+      frame: automaticCamera.frame,
+      angle: automaticCamera.angle,
+    };
+    activeRules.push('اختيار تكوين وزاوية وعدسة السيلفي تلقائياً حسب المشهد');
+  }
 
   const isOutside = input.loc.zone === 'outside';
   const isInside = input.loc.zone === 'inside';
