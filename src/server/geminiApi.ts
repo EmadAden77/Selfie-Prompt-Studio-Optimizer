@@ -2,6 +2,9 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import { GoogleGenAI } from '@google/genai';
 
 const app = express();
+let moduleInitializationError: string | null = null;
+
+try {
 const MAX_OPTION_LENGTH = 500;
 const MAX_NOTE_LENGTH = 2_000;
 const MAX_PROMPT_LENGTH = 12_000;
@@ -410,5 +413,21 @@ app.post(['/api/gemini/optimize-prompt', '/gemini/optimize-prompt'], async (req,
 app.get(['/api/health', '/health'], (_req, res) => {
   res.json({ status: 'ok', hasGeminiKey: Boolean(apiKey) });
 });
+
+} catch (error: unknown) {
+  const record = typeof error === 'object' && error !== null
+    ? error as { message?: unknown }
+    : {};
+  moduleInitializationError = typeof record.message === 'string'
+    ? record.message.slice(0, 500)
+    : 'Unknown API module initialization failure';
+  app.use((_request, response) => {
+    response.status(500).json({
+      success: false,
+      error: 'API module initialization failed.',
+      detail: moduleInitializationError,
+    });
+  });
+}
 
 export default app;
