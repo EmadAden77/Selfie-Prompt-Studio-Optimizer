@@ -157,9 +157,11 @@ export function validateAndSanitizePhysics(input: BuildInput): {
       light: input.light,
       storyline: input.storyline,
       tint: input.tint,
+      directorPlan: input.directorPlan,
     });
     input = {
       ...input,
+      pose: input.directorPlan?.pose ?? input.pose,
       cameraMode: 'auto',
       cameraPlan: automaticCamera,
       frame: automaticCamera.frame,
@@ -887,7 +889,12 @@ export function validateAndSanitizePhysics(input: BuildInput): {
       light: sanitizedLight,
       storyline: input.storyline,
       tint: sanitizedTint,
+      directorPlan: input.directorPlan,
     });
+
+  const sanitizedDirectorPlan = input.directorPlan
+    ? { ...input.directorPlan, pose: contextual.pose }
+    : undefined;
 
   const sanitized: BuildInput = {
     ...input,
@@ -901,6 +908,7 @@ export function validateAndSanitizePhysics(input: BuildInput): {
     frame: finalCameraPlan?.frame ?? input.frame,
     angle: finalCameraPlan?.angle ?? contextual.angle,
     cameraPlan: finalCameraPlan,
+    directorPlan: sanitizedDirectorPlan,
     hair: contextual.hair,
     accessory: contextual.accessory,
     subsurfaces: sanitizedSubsurfaces,
