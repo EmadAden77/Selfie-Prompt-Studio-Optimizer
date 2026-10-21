@@ -1,3 +1,1 @@
-import app from '../[...path]';
-
-export default app;
+export { default } from '../../src/server/geminiApi';
