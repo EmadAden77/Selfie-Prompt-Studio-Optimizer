@@ -317,7 +317,7 @@ export function normalizeGeminiDirectorPlan(
     .filter((candidate) => outside === candidate.id.startsWith(OUTSIDE_POSE_PREFIX))
     .map((candidate) => candidate.id));
   const validAngleIds = new Set(['eye_level', 'candid_side', 'high_45', 'chest_low']);
-  const validFrameIds = new Set(['close_face', 'half_body', 'wide_outside']);
+  const validFrameIds = new Set(outside ? ['close_face', 'half_body', 'wide_outside'] : ['close_face', 'half_body']);
 
   const nestedPose = asRecord(record.pose);
   const poseId = validId(
