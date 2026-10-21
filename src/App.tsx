@@ -126,7 +126,8 @@ export default function App() {
   const [heightCueId, setHeightCueId] = useState(initial.heightCueId ?? 'headrest_max');
 
   // الكاميرا والتأطير
-  const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode ?? 'auto');
+  const initialCameraMode: CameraMode = initial.cameraMode ?? (initial.frameId || initial.angleId ? 'manual' : 'auto');
+  const [cameraMode, setCameraMode] = useState<CameraMode>(initialCameraMode);
   const [frameId, setFrameId] = useState(initial.frameId ?? 'close_face');
   const [aspectId, setAspectId] = useState(initial.aspectId ?? '916');
   const [phoneId, setPhoneId] = useState(initial.phoneId ?? 'iphone_16_pro');
@@ -524,7 +525,12 @@ export default function App() {
     if (d.storylineId) setStorylineId(d.storylineId);
     if (d.tintId) setTintId(d.tintId);
     if (d.anatomicalExprId) setAnatomicalExprId(d.anatomicalExprId);
-    if (d.cameraMode) setCameraMode(d.cameraMode);
+    if (d.cameraMode === 'auto' || d.cameraMode === 'manual') {
+      setCameraMode(d.cameraMode);
+    } else if (d.frameId || d.angleId) {
+      // Legacy sessions encoded a deliberate camera choice without cameraMode.
+      setCameraMode('manual');
+    }
     if (d.frameId) setFrameId(d.frameId);
     if (d.aspectId) setAspectId(d.aspectId);
     if (d.phoneId) setPhoneId(d.phoneId);
