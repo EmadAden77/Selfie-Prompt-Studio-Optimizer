@@ -17,7 +17,7 @@ export interface GeminiPromptResult {
 
 const MAX_FIELD_LENGTH = 900;
 const MAX_PROMPT_LENGTH = 14_000;
-const SPECIFIC_LANDMARKS = /\\b(eiffel|burj\\s+khalifa|burj\\s+al\\s+arab|times\\s+square|big\\s+ben|petra|pyramids?|disneyland)\\b|برج\\s+(خليفة|العرب)|تايمز\\s+سكوير|برج\\s+بيغ\\s+بن|الأهرامات/i;
+const SPECIFIC_LANDMARKS = /\b(eiffel|burj\s+khalifa|burj\s+al\s+arab|times\s+square|big\s+ben|petra|pyramids?|disneyland)\b|برج\s+(خليفة|العرب)|تايمز\s+سكوير|برج\s+بيغ\s+بن|الأهرامات/i;
 
 export const GEMINI_AUTO_PROMPT_SYSTEM_INSTRUCTION = [
   'You are the controlled scene director and final prompt engine for a realistic Saudi smartphone selfie application.',
@@ -41,7 +41,7 @@ export const GEMINI_AUTO_PROMPT_SYSTEM_INSTRUCTION = [
   'Return JSON only, with exactly these keys and no markdown: promptEn, promptAr, locationEn, locationAr, backgroundEn, backgroundAr, poseEn, poseAr, cameraEn, cameraAr, lightingEn, lightingAr, reasonEn, reasonAr.',
   'promptEn and promptAr must be complete, copy-ready image prompts. They must include identity preservation, 193cm/83kg body constraints, selected car, selected clothing, selected lighting, the chosen Saudi setting, background, pose, camera geometry, physical light causality, and negative constraints.',
   'Use concise but sufficiently detailed wording. Do not mention that you are an AI, do not explain your process, and do not output alternatives.'
-].join('\\n');
+].join('\n');
 
 type JsonRecord = Record<string, unknown>;
 
@@ -58,7 +58,7 @@ function cleanText(value: string, maxLength = MAX_FIELD_LENGTH): string {
   return value
     .replace(/```(?:json|text)?/gi, '')
     .replace(/```/g, '')
-    .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/g, '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
     .trim()
     .slice(0, maxLength);
 }
@@ -110,7 +110,7 @@ export function normalizeGeminiPromptResult(raw: unknown): GeminiPromptResult | 
   if (required.some(value => !value)) return null;
   if (result.promptEn.length < 260 || result.promptAr.length < 180) return null;
   if (SPECIFIC_LANDMARKS.test(result.promptEn) || SPECIFIC_LANDMARKS.test(result.promptAr)) return null;
-  if (/ignore previous|reveal hidden|system prompt|تعليمات النظام|تجاهل التعليمات/i.test(result.promptEn + '\\n' + result.promptAr)) return null;
+  if (/ignore previous|reveal hidden|system prompt|تعليمات النظام|تجاهل التعليمات/i.test(result.promptEn + '\n' + result.promptAr)) return null;
 
   return result;
 }
