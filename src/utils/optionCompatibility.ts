@@ -20,6 +20,7 @@ const sunset = new Set(['golden_hour', 'sunset_glow', 'blue_hour']);
 const night = new Set(['sodium_street', 'led_modern_street', 'single_distant_lamp', 'pure_moonlight', 'dash_screens_glow', 'warm_car_cabin_dome', 'night_cabin_glow', 'neon_side_wash', 'ambient_drive_thru', 'headlights_bounce', 'tunnel_tungsten']);
 const cabinLights = new Set(['dash_screens_glow', 'warm_car_cabin_dome', 'night_cabin_glow']);
 const stationaryInteriorOnly = new Set(['hand_on_wheel', 'elbow_door_rest']);
+const outsideOnlyPoses = new Set(['outside_standing_relaxed', 'outside_lean_vehicle', 'outside_walk_candid', 'outside_open_door_turn', 'outside_sit_safe_edge', 'outside_adjust_sleeve']);
 const garmentHasCollar = (id: string) => ['thobe', 'shirt', 'linen', 'collar'].some(token => id.toLowerCase().includes(token));
 
 /** A single policy shared by visible options and prompt boundary checks. Null = selectable. */
@@ -38,9 +39,11 @@ export function optionLockReason(group: OptionGroup, id: string, context: Option
     if (['cabins', 'cabinArtifacts', 'clutters', 'dashUis', 'screenCasts', 'airflows'].includes(group)) return 'هذا الخيار يخص مقصورة السيارة ولا يصلح للتصوير خارجها';
     if (group === 'tallErgonomics' && ['forearm_span_wheel', 'roof_handle_grip'].includes(id)) return 'هذه الحركة مرتبطة بمقعد السائق';
     if (group === 'poses' && stationaryInteriorOnly.has(id)) return 'الوضعية تتطلب الجلوس داخل السيارة';
+    if (group === 'poses' && outsideOnlyPoses.has(id)) return 'هذه الوضعية مخصصة للتصوير خارج السيارة';
     if (group === 'lighting' && cabinLights.has(id)) return 'مصدر الضوء داخل المقصورة ولا يضيء شخصًا خارج السيارة';
     if (group === 'heightCue' && ['headrest_max', 'auto_scale', 'tall_roofline', 'seatbelt_geometry', 'elbow_door_rest'].includes(id)) return 'هذه تفاصيل مرتبطة بمقعد السيارة';
   }
+  if (group === 'poses' && outsideOnlyPoses.has(id) && context.zone === 'inside') return 'الوضعية الخارجية غير متاحة داخل السيارة';
   if (group === 'cabins' && id === 'large_hand_gear' && (context.poseId === 'hand_on_wheel' || context.selectedErgonomicIds.includes('forearm_span_wheel') || context.selectedErgonomicIds.includes('roof_handle_grip'))) return 'Conflict with selected arm pose';
   if (group === 'poses' && id === 'hand_on_wheel' && context.selectedCabinIds?.includes('large_hand_gear')) return 'Gear hand already selected';
   if (context.frameId === 'close_face' && group === 'cabins' && ['large_hand_gear', 'tissue_box_console'].includes(id)) return 'Below close selfie framing';
