@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt, CameraMode, AutoSceneDirectorPlan } from './types/studio';
+import { Tab, StepCategory, Lang, SavedSession, PresetMood, GeminiScenario, GeminiOptimized, Opt, CameraMode, AutoSceneDirectorPlan, GeminiPromptResult } from './types/studio';
 import {
   HAIR_STYLES,
   BEARD_STYLES,
@@ -47,6 +47,7 @@ import { copyToClipboard } from './utils/clipboard';
 import { geminiApiUrl } from './utils/geminiApi';
 import { resolveAutoCameraPlan } from './utils/autoCameraDirector';
 import { normalizeGeminiDirectorPlan, resolveAutoSceneDirector } from './utils/autoSceneDirector';
+import { normalizeGeminiPromptResult } from './utils/geminiPromptPolicy';
 
 const STORAGE_KEY = 'selfie-prompt-studio-v11.0';
 
@@ -188,6 +189,10 @@ export default function App() {
   const [geminiDirectorKey, setGeminiDirectorKey] = useState('');
   const [directorStatus, setDirectorStatus] = useState<'local' | 'loading' | 'gemini' | 'fallback'>('local');
   const directorRequestRef = useRef(0);
+  const [geminiAutoPrompt, setGeminiAutoPrompt] = useState<GeminiPromptResult | null>(null);
+  const [geminiAutoPromptKey, setGeminiAutoPromptKey] = useState('');
+  const [geminiAutoPromptStatus, setGeminiAutoPromptStatus] = useState<'idle' | 'loading' | 'ready' | 'fallback'>('idle');
+  const geminiAutoPromptRequestRef = useRef(0);
 
   // Snapshot & Automatic Physical Realism Engine States
   const [studioSnapshot, setStudioSnapshot] = useState<StoredState | null>(null);
@@ -344,6 +349,62 @@ export default function App() {
     };
   }, [cameraMode, directorKey, directorContext, localDirectorPlan, loc, carModel, cloth, accessory, aspect, phone, light, storyline, tint, timeOfDay]);
 
+  const automaticPromptKey = useMemo(
+    () => JSON.stringify({ carModelId, carColorId, clothId, lightId }),
+    [carModelId, carColorId, clothId, lightId]
+  );
+  const automaticPromptIsActive = geminiAutoPromptKey === automaticPromptKey && Boolean(geminiAutoPrompt);
+
+  // Gemini owns the automatic prompt. Only car, lighting, and clothing are sent as
+  // authoritative user choices; every other detail is selected under the strict policy.
+  useEffect(() => {
+    const requestId = ++geminiAutoPromptRequestRef.current;
+    let cancelled = false;
+    setGeminiAutoPromptStatus('loading');
+    setGeminiAutoPrompt(null);
+    setGeminiAutoPromptKey('');
+
+    const timer = window.setTimeout(async () => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
+      try {
+        const describe = (value: Opt) => ({ id: value.id, ar: value.ar, en: value.en });
+        const response = await fetch(geminiApiUrl('/api/gemini/generate-prompt'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            car: describe(carModel),
+            carColor: describe(carColor),
+            light: describe(light),
+            cloth: describe(cloth),
+          }),
+        });
+        const data = await response.json().catch(() => null);
+        const normalized = data?.success
+          ? normalizeGeminiPromptResult(data.prompt)
+          : null;
+        if (!response.ok || !normalized) {
+          throw new Error(data?.error || 'automatic_prompt_unavailable');
+        }
+        if (cancelled || requestId !== geminiAutoPromptRequestRef.current) return;
+        setGeminiAutoPrompt(normalized);
+        setGeminiAutoPromptKey(automaticPromptKey);
+        setGeminiAutoPromptStatus('ready');
+      } catch {
+        if (cancelled || requestId !== geminiAutoPromptRequestRef.current) return;
+        setGeminiAutoPromptStatus('fallback');
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [automaticPromptKey, carModel, carColor, cloth, light]);
+
   const autoCameraPlan = useMemo(
     () => resolveAutoCameraPlan({ loc, carModel, cloth, pose, aspect, phone, light, storyline, tint, directorPlan: activeDirectorPlan }),
     [loc, carModel, cloth, pose, aspect, phone, light, storyline, tint, activeDirectorPlan]
@@ -426,8 +487,21 @@ export default function App() {
     }
   }, [sceneFingerprint]);
 
-  const promptAr = isCustomEdited && customPromptAr ? customPromptAr : computedPrompt.ar;
-  const promptEn = isCustomEdited && customPromptEn ? customPromptEn : computedPrompt.en;
+  const promptSource = isCustomEdited
+    ? 'custom'
+    : automaticPromptIsActive
+      ? 'gemini'
+      : 'local';
+  const promptAr = isCustomEdited && customPromptAr
+    ? customPromptAr
+    : automaticPromptIsActive && geminiAutoPrompt
+      ? geminiAutoPrompt.promptAr
+      : computedPrompt.ar;
+  const promptEn = isCustomEdited && customPromptEn
+    ? customPromptEn
+    : automaticPromptIsActive && geminiAutoPrompt
+      ? geminiAutoPrompt.promptEn
+      : computedPrompt.en;
 
   const toggle = (id: string, list: string[], setter: React.Dispatch<React.SetStateAction<string[]>>) => {
     setter(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
@@ -1007,7 +1081,29 @@ export default function App() {
 
               {/* صندوق عرض ونسخ البرومبت الذكي */}
               <div className={`${card} border rounded-2xl p-4 md:p-5 space-y-3`}>
-                <div className="flex items-center justify-between">
+
+                <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/30 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 text-indigo-200 text-xs font-extrabold">
+                      <span>✨</span>
+                      <span>المحرك التلقائي عبر Gemini</span>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${geminiAutoPromptStatus === 'ready' ? 'bg-emerald-500/20 text-emerald-300' : geminiAutoPromptStatus === 'loading' ? 'bg-amber-500/20 text-amber-300' : 'bg-zinc-800 text-zinc-300'}`}>
+                      {promptSource === 'gemini' ? 'Gemini جاهز' : geminiAutoPromptStatus === 'loading' ? 'جارٍ التوليد' : geminiAutoPromptStatus === 'fallback' ? 'خطة محلية آمنة' : 'محرك محلي'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-indigo-100/80 leading-relaxed">
+                    أنت تختار السيارة والإضاءة والملابس فقط. يختار Gemini الموقع السعودي والخلفية والوضعية والزاوية وكل التفاصيل وفق قواعد الواقعية الصارمة.
+                  </p>
+                  {geminiAutoPrompt && automaticPromptIsActive && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10px] text-zinc-300">
+                      <span><b className="text-indigo-200">الموقع:</b> {geminiAutoPrompt.locationAr}</span>
+                      <span><b className="text-indigo-200">الخلفية:</b> {geminiAutoPrompt.backgroundAr}</span>
+                      <span><b className="text-indigo-200">الوضعية:</b> {geminiAutoPrompt.poseAr}</span>
+                      <span><b className="text-indigo-200">الكاميرا:</b> {geminiAutoPrompt.cameraAr}</span>
+                    </div>
+                  )}
+                </div>                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-base">🧠</span>
                     <div>
