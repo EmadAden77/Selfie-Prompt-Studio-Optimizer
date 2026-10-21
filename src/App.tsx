@@ -293,11 +293,14 @@ export default function App() {
     setGeminiDirectorKey('');
 
     const timer = window.setTimeout(async () => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
       try {
         const describe = (value: Opt) => ({ id: value.id, ar: value.ar, en: value.en });
         const response = await fetch(geminiApiUrl('/api/gemini/call-flash'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
             action: 'director',
             scene: {
@@ -330,6 +333,8 @@ export default function App() {
       } catch {
         if (cancelled || requestId !== directorRequestRef.current) return;
         setDirectorStatus('fallback');
+      } finally {
+        window.clearTimeout(timeoutId);
       }
     }, 350);
 
